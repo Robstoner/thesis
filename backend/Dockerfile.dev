@@ -2,11 +2,26 @@ FROM python:3.11-slim
 
 # Instalează dependențele pentru Tesseract
 RUN apt-get update && apt-get install -y \
+    # Pentru psycopg2
+    libpq-dev \
+    gcc \
+    # Pentru Tesseract OCR
     tesseract-ocr \
     tesseract-ocr-ron \
     tesseract-ocr-eng \
+    # Pentru image processing (Pillow)
+    libjpeg-dev \
+    zlib1g-dev \
+    libfreetype6-dev \
+    liblcms2-dev \
+    libopenjp2-7-dev \
+    libtiff5-dev \
+    libwebp-dev \
+    # Pentru OpenCV (dacă ai nevoie în viitor)
     libgl1-mesa-glx \
     libglib2.0-0 \
+    # Build tools
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -14,5 +29,9 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+RUN pip install --no-cache-dir psycopg2
+
 # În development, codul este mounted ca volume
 EXPOSE 8000
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:15
@@ -17,6 +15,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - nutrition_dev_network
 
   backend:
     build: 
@@ -33,7 +33,17 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - nutrition_dev_network
 
 volumes:
   postgres_data_dev:
+
+networks:
+  nutrition_dev_network:

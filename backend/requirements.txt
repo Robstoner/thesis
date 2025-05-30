@@ -23,6 +23,7 @@ mdurl==0.1.2
 openai==1.82.0
 packaging==25.0
 pillow==11.2.1
+psycopg2-binary==2.9.10
 pydantic==2.11.5
 pydantic-settings==2.9.1
 pydantic_core==2.33.2
