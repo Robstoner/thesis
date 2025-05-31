@@ -1,0 +1,15 @@
+meta {
+  name: Update food
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/foods/1
+  body: multipartForm
+  auth: inherit
+}
+
+body:multipart-form {
+  name: test updated
+}

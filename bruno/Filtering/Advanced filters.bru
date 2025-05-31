@@ -1,0 +1,21 @@
+meta {
+  name: Advanced filters
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/foods/filter/advanced?page=1&page_size=10&min_protein=5
+  body: none
+  auth: inherit
+}
+
+params:query {
+  page: 1
+  page_size: 10
+  min_protein: 5
+  ~has_ingredients: true
+  ~max_calories: 
+  ~max_sodium: 
+  ~max_processing_score: 
+}

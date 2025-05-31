@@ -1,0 +1,18 @@
+meta {
+  name: Ranking
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/foods/ranking/by-criteria?page=1&page_size=10&criteria=processing_score&ascending=true
+  body: none
+  auth: inherit
+}
+
+params:query {
+  page: 1
+  page_size: 10
+  criteria: processing_score
+  ascending: true
+}

@@ -1,0 +1,11 @@
+meta {
+  name: Summary of uploaded foods
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/foods/stats/summary
+  body: none
+  auth: inherit
+}
