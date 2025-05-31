@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List, Sequence
 from datetime import datetime
 
 class FoodBase(BaseModel):
@@ -27,3 +27,16 @@ class Food(FoodBase):
 
     class Config:
         from_attributes = True
+
+# Pagination schemas
+class PaginationMeta(BaseModel):
+    page: int
+    page_size: int
+    total_items: int
+    total_pages: int
+    has_next: bool
+    has_previous: bool
+
+class FoodListResponse(BaseModel):
+    items: Sequence[Food]
+    pagination: PaginationMeta
