@@ -9,6 +9,7 @@ class FoodBase(BaseModel):
     protein_per_100g: Optional[float] = None
     carbs_per_100g: Optional[float] = None
     fat_per_100g: Optional[float] = None
+    saturated_fat_per_100g: Optional[float] = None
     fiber_per_100g: Optional[float] = None
     sugar_per_100g: Optional[float] = None
     sodium_per_100g: Optional[float] = None

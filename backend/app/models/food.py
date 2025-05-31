@@ -14,6 +14,7 @@ class Food(Base):
     protein_per_100g = Column(Float, nullable=True)
     carbs_per_100g = Column(Float, nullable=True)
     fat_per_100g = Column(Float, nullable=True)
+    saturated_fat_per_100g = Column(Float, nullable=True)
     fiber_per_100g = Column(Float, nullable=True)
     sugar_per_100g = Column(Float, nullable=True)
     sodium_per_100g = Column(Float, nullable=True)

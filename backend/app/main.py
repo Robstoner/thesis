@@ -1,4 +1,5 @@
-from fastapi import FastAPI, File, UploadFile, Depends, HTTPException
+from typing import Optional
+from fastapi import FastAPI, File, Form, UploadFile, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from app.database import SessionLocal, engine, get_db
@@ -40,8 +41,8 @@ async def health_check():
 
 @app.post("/foods/", response_model=schemas.Food)
 async def create_food(
-    name: str,
-    brand: str = None,
+    name: str = Form(...),
+    brand: Optional[str] = Form(None),
     nutrition_image: UploadFile = File(None),
     ingredients_image: UploadFile = File(None),
     db: Session = Depends(get_db)
@@ -57,9 +58,11 @@ async def create_food(
     # Procesează imaginea cu ingrediente
     ingredients_processed = None
     ingredients_raw = None
+    processing_score = None
     if ingredients_image:
         ingredients_raw = await ocr_service.extract_text(ingredients_image)
         ingredients_processed = await ai_service.process_ingredients(ingredients_raw)
+        processing_score = await ai_service.extract_processing_score(ingredients_processed)
     
     # Creează obiectul în baza de date
     db_food = models.Food(
@@ -67,6 +70,7 @@ async def create_food(
         brand=brand,
         ingredients_raw=ingredients_raw,
         ingredients_processed=ingredients_processed,
+        processing_score=processing_score,
         **nutrition_data
     )
     

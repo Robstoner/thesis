@@ -1,11 +1,12 @@
-from openai import AsyncOpenAI
+import google.generativeai as genai
 from app.core.config import settings
 import json
 import asyncio
 
 class AIService:
     def __init__(self):
-        self.client = AsyncOpenAI(api_key=settings.openai_api_key)
+        genai.configure(api_key=settings.gemini_api_key)
+        self.model = genai.GenerativeModel('gemini-1.5-flash')  # Free tier model
     
     async def parse_nutrition_info(self, ocr_text: str) -> dict:
         """Parsează informațiile nutriționale din textul OCR"""
@@ -20,8 +21,9 @@ class AIService:
         {{
             "calories_per_100g": float sau null,
             "protein_per_100g": float sau null,
-            "carbs_per_100g": float sau null,
             "fat_per_100g": float sau null,
+            "saturated_fat_per_100g": float sau null,
+            "carbs_per_100g": float sau null,
             "fiber_per_100g": float sau null,
             "sugar_per_100g": float sau null,
             "sodium_per_100g": float sau null
@@ -31,15 +33,15 @@ class AIService:
         """
         
         try:
-            response = await self.client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.1,
-                max_tokens=500
+            # Run in thread pool since Gemini SDK doesn't have native async
+            loop = asyncio.get_event_loop()
+            response = await loop.run_in_executor(
+                None, 
+                lambda: self.model.generate_content(prompt)
             )
             
-            result = response.choices[0].message.content
-            if (result is None or result.strip() == ""):
+            result = response.text
+            if not result or result.strip() == "":
                 print("Răspunsul este gol sau null.")
                 return {}
                 
@@ -82,15 +84,14 @@ class AIService:
         """
         
         try:
-            response = await self.client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.3,
-                max_tokens=1000
+            loop = asyncio.get_event_loop()
+            response = await loop.run_in_executor(
+                None, 
+                lambda: self.model.generate_content(prompt)
             )
             
-            result = response.choices[0].message.content
-            if (result is None or result.strip() == ""):
+            result = response.text
+            if not result or result.strip() == "":
                 print("Răspunsul este gol sau null.")
                 return "Eroare la procesarea ingredientelor. Text original: " + ingredients_text
             
@@ -102,11 +103,19 @@ class AIService:
     async def extract_processing_score(self, processed_ingredients: str) -> int:
         """Extrage scorul de procesare din textul procesat"""
         try:
-            # Caută pattern-ul "Grad de procesare: X"
             import re
-            match = re.search(r'Grad de procesare:\s*(\d+)', processed_ingredients)
+            match = re.search(r'\*\*Grad de procesare:\*\*\s*(\d+)', processed_ingredients)
+            if not match:
+                # Fallback to simpler pattern without markdown
+                match = re.search(r'Grad de procesare:\s*(\d+)', processed_ingredients)
+            if not match:
+                # Even more flexible - just look for "procesare" followed by a number
+                match = re.search(r'procesare[:\s]*(\d+)', processed_ingredients, re.IGNORECASE)
+            
             if match:
-                return int(match.group(1))
-            return 3  # Default dacă nu găsește
+                score = int(match.group(1))
+                # Ensure score is between 1-5
+                return max(1, min(5, score))
+            return 3
         except:
             return 3
