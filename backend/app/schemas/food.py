@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, List, Sequence
+from typing import Optional, Sequence
 from datetime import datetime
 
 class FoodBase(BaseModel):

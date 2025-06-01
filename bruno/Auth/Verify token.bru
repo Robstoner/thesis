@@ -1,0 +1,11 @@
+meta {
+  name: Verify Token
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/auth/verify
+  body: none
+  auth: inherit
+}

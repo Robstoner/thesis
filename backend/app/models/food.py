@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String, Float, Text, DateTime, JSON
+from sqlalchemy import Column, Integer, String, Float, Text, DateTime, ForeignKey
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 from app.database import Base
 
 class Food(Base):
@@ -9,7 +10,8 @@ class Food(Base):
     name = Column(String, index=True)
     brand = Column(String, nullable=True)
     
-    # Informații nutriționale
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    
     calories_per_100g = Column(Float, nullable=True)
     protein_per_100g = Column(Float, nullable=True)
     carbs_per_100g = Column(Float, nullable=True)
@@ -19,14 +21,14 @@ class Food(Base):
     sugar_per_100g = Column(Float, nullable=True)
     sodium_per_100g = Column(Float, nullable=True)
     
-    # Ingrediente
-    ingredients_raw = Column(Text)  # Text extras din OCR
-    ingredients_processed = Column(Text)  # Text procesat de AI
+    ingredients_raw = Column(Text)
+    ingredients_processed = Column(Text)
     
-    # Metadata
     nutrition_image_path = Column(String, nullable=True)
     ingredients_image_path = Column(String, nullable=True)
-    processing_score = Column(Integer, nullable=True)  # 1-5 scală procesare
+    processing_score = Column(Integer, nullable=True)
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    owner = relationship("User", back_populates="foods")

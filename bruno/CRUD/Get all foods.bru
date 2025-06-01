@@ -5,7 +5,7 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/foods/?search&sort_by=processing_score&sort_order=desc&page=2&page_size=1
+  url: {{baseUrl}}/foods/?search&sort_by=processing_score&sort_order=desc&page=1&page_size=1
   body: none
   auth: inherit
 }
@@ -14,6 +14,6 @@ params:query {
   search: 
   sort_by: processing_score
   sort_order: desc
-  page: 2
+  page: 1
   page_size: 1
 }
