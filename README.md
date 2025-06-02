@@ -2,8 +2,6 @@
 
 **Aplicație mobilă pentru recunoașterea și interpretarea informațiilor nutriționale folosind OCR și analiză a ingredientelor**
 
----
-
 **Author**: Schmidt Robert-Eduard  
 **Supervisor**: Dr. Mureșan Claudia  
 **University**: University of Bucharest, Faculty of Mathematics and Computer Science  
