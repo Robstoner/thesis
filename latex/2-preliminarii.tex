@@ -1,0 +1,138 @@
+\chapter{Preliminarii}
+
+\section{Recunoașterea optică a caracterelor (OCR)}
+
+Recunoașterea optică a caracterelor reprezintă procesul de conversie a imaginilor care conțin text tipărit sau scris de mână în text digital editabil și căutabil. Această tehnologie a evoluat semnificativ în ultimele decenii, de la sistemele simple de recunoaștere a fonturilor fixe la motoare sofisticate capabile să proceseze texte complexe în multiple limbi.
+
+\subsection{Principiile fundamentale ale OCR}
+
+Procesul OCR constă în mai multe etape fundamentale:
+
+\textbf{Preprocesarea imaginii}: Această etapă include operațiuni de îmbunătățire a calității imaginii, cum ar fi corectarea luminozității și contrastului, eliminarea zgomotului și rotirea pentru alinierea corectă a textului.
+
+\textbf{Segmentarea}: Identificarea și separarea regiunilor care conțin text de restul imaginii, urmată de segmentarea în linii, cuvinte și caractere individuale.
+
+\textbf{Recunoașterea caracterelor}: Analiza formei fiecărui caracter și asocierea acestuia cu caracterul corespunzător din alfabetul țintă.
+
+\textbf{Post-procesarea}: Aplicarea de algoritmi de corecție și verificare pentru îmbunătățirea acurateței rezultatului final.
+
+\subsection{Tesseract OCR}
+
+Tesseract este unul dintre cele mai performante și utilizate motoare OCR open-source disponibile în prezent. Dezvoltat inițial de Hewlett-Packard în anii 1980 și ulterior îmbunătățit de Google, Tesseract oferă suport pentru peste 100 de limbi și poate recunoaște text din imagini cu o acuratețe ridicată.
+
+Principalele avantaje ale Tesseract includ:
+
+\begin{itemize}
+    \item \textbf{Suport multilingv}: Capacitatea de a procesa simultan texte în multiple limbi, esențială pentru etichetele alimentelor care conțin adesea text în mai multe idiomuri
+    \item \textbf{Flexibilitate}: Posibilitatea de configurare pentru diferite tipuri de text și layout-uri
+    \item \textbf{Performanță}: Rezultate comparative superioare față de alte soluții open-source în majoritatea testelor de benchmark
+    \item \textbf{Comunitate activă}: Dezvoltare continuă și suport din partea unei comunități mari de dezvoltatori
+\end{itemize}
+
+Studii comparative arată că Tesseract obține o acuratețe de peste 90\% pentru texte tipărite în condiții bune de iluminare, ceea ce îl face potrivit pentru procesarea etichetelor alimentelor.
+
+\section{Inteligența artificială în procesarea limbajului natural}
+
+Procesarea limbajului natural (NLP) reprezintă domeniul inteligenței artificiale care se ocupă cu interacțiunea între computere și limbajul uman. În contextul acestei aplicații, NLP este utilizat pentru interpretarea și explicarea listelor de ingrediente.
+
+\subsection{Modele de limbaj mari (Large Language Models)}
+
+Modelele de limbaj mari au revoluționat domeniul NLP prin capacitatea lor de a înțelege și genera text într-o manieră similară cu cea umană. Aceste modele sunt antrenate pe volume masive de text și pot efectua diverse sarcini lingvistice fără a fi explicit programate pentru fiecare task.
+
+\subsection{Gemini API}
+
+Google Gemini reprezintă una dintre cele mai avansate familii de modele de limbaj, optimizată pentru o gamă largă de aplicații. Principalele caracteristici care au motivat alegerea Gemini pentru această aplicație includ:
+
+\textbf{Performanță în domenii specializate}: Gemini demonstrează rezultate superioare în interpretarea conceptelor din domeniul științific, inclusiv chimie și biologie, domenii esențiale pentru înțelegerea ingredientelor alimentare.
+
+\textbf{Multimodalitate}: Capacitatea de a procesa nu doar text, ci și imagini, ceea ce poate fi util pentru dezvoltări viitoare ale aplicației.
+
+\textbf{Accesibilitate}: Oferirea unui tier gratuit generos care permite dezvoltarea și testarea aplicației fără costuri semnificative.
+
+\textbf{Documentație și suport}: API-ul Gemini oferă documentație completă și exemple de integrare, facilitând dezvoltarea aplicației.
+
+\section{Tehnologii web moderne}
+
+\subsection{FastAPI}
+
+FastAPI este un framework web modern pentru dezvoltarea de API-uri în Python, caracterizat prin performanță ridicată și ușurință în utilizare. Principalele avantaje care au motivat alegerea FastAPI includ:
+
+\textbf{Performanță}: FastAPI este unul dintre cele mai rapide framework-uri Python disponibile, cu performanțe comparabile cu Node.js și Go, ceea ce este crucial pentru o aplicație care procesează imagini și efectuează apeluri către servicii externe.
+
+\textbf{Documentație automată}: Generarea automată a documentației API-ului în standardele OpenAPI (Swagger), facilitând testarea și integrarea.
+
+\textbf{Validare automată}: Validarea automată a datelor de intrare și ieșire folosind type hints-urile Python, reducând erorile și îmbunătățind robustețea aplicației.
+
+\textbf{Suport async nativ}: Suportul nativ pentru programarea asincronă permite gestionarea eficientă a multiple cereri simultane.
+
+\textbf{Maturitatea ecosistemului}: FastAPI beneficiază de ecosistemul bogat Python și de integrarea facilă cu biblioteci specializate pentru machine learning și procesarea imaginilor.
+
+\subsection{PostgreSQL}
+
+PostgreSQL este un sistem de gestiune a bazelor de date relaționale open-source, cunoscut pentru fiabilitatea și conformitatea cu standardele SQL. Alegerea PostgreSQL pentru această aplicație se bazează pe:
+
+\textbf{Robustețea și fiabilitatea}: PostgreSQL oferă garanții ACID complete și mecanisme avansate de backup și recovery.
+
+\textbf{Suport pentru tipuri de date complexe}: Capacitatea de a stoca și indexa eficient tipuri de date JSON, utile pentru stocarea informațiilor nutriționale structurate.
+
+\textbf{Extensibilitate}: Posibilitatea de a adăuga extensii pentru funcționalități suplimentare, cum ar fi căutarea full-text.
+
+\textbf{Performanță}: Optimizări avansate pentru interogări complexe și indexare eficientă.
+
+\textbf{Suport pentru text search}: Funcționalități native pentru căutarea în text, utile pentru implementarea funcțiilor de căutare după nume de alimente sau ingrediente.
+
+\section{Containerizare cu Docker}
+
+Docker este o platformă de containerizare care permite împachetarea aplicațiilor împreună cu toate dependențele lor într-un container portabil și ușor de distribuit.
+
+\subsection{Avantajele containerizării}
+
+\textbf{Portabilitate}: Containerele Docker rulează identic pe orice sistem care suportă Docker, eliminând problemele de „funcționează pe mașina mea".
+
+\textbf{Izolare}: Fiecare container rulează în propriul mediu izolat, evitând conflictele între dependențe.
+
+\textbf{Scalabilitate}: Ușurința de scalare orizontală prin adăugarea de noi instanțe de containere.
+
+\textbf{Simplificarea deployment-ului}: Procesul de deployment devine standardizat și automatizabil.
+
+\textbf{Reproducibilitatea mediului}: Mediul de dezvoltare poate fi reprodus exact în producție, reducând erorile legate de diferențele de configurare.
+
+\subsection{Docker Compose}
+
+Docker Compose permite definirea și rularea aplicațiilor multi-container folosind un fișier YAML de configurare. În contextul acestei aplicații, Docker Compose orchestrează:
+
+\begin{itemize}
+    \item Containerul aplicației backend (FastAPI)
+    \item Containerul bazei de date (PostgreSQL)
+    \item Configurarea rețelei și a volumelor pentru persistența datelor
+    \item Configurarea variabilelor de mediu necesare
+\end{itemize}
+
+Această arhitectură containerizată facilitează dezvoltarea locală, testarea și deployment-ul în producție, oferind o bază solidă pentru scalarea viitoare a aplicației.
+
+\section{Procesarea imaginilor pentru OCR}
+
+Pentru ca sistemul OCR să funcționeze optim cu imaginile etichetelor alimentare, este necesară aplicarea unor tehnici de preprocesare a imaginilor.
+
+\subsection{Pillow (PIL)}
+
+Pillow este biblioteca Python standard pentru procesarea imaginilor, oferind funcționalități pentru:
+
+\begin{itemize}
+    \item Redimensionarea și rotirea imaginilor
+    \item Ajustarea contrastului și luminozității
+    \item Conversia între diferite formate de imagine
+    \item Aplicarea de filtre pentru îmbunătățirea calității
+\end{itemize}
+
+\subsection{Optimizări specifice pentru etichete alimentare}
+
+Etichetele alimentare prezintă provocări specifice pentru OCR:
+
+\textbf{Fonturi mici}: Informațiile nutriționale sunt adesea tipărite cu fonturi foarte mici, necesitând tehnici de scaling și sharpening.
+
+\textbf{Reflexii și umbre}: Materialele reflectorizante ale ambalajelor pot crea reflexii care interferează cu recunoașterea textului.
+
+\textbf{Fundal colorat}: Multe etichete au fundal colorat sau texturi care pot reduce contrastul textului.
+
+\textbf{Layout complex}: Informațiile sunt organizate în tabele și coloane, necesitând detectarea corectă a structurii layout-ului.
