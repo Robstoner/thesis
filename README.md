@@ -2,6 +2,13 @@
 
 **Aplicație mobilă pentru recunoașterea și interpretarea informațiilor nutriționale folosind OCR și analiză a ingredientelor**
 
+---
+
+**Author**: Schmidt Robert-Eduard  
+**Supervisor**: Dr. Mureșan Claudia  
+**University**: University of Bucharest, Faculty of Mathematics and Computer Science  
+**Year**: 2025
+
 ## Abstract (Română)
 
 În contextul actual, înțelegerea informațiilor nutriționale de pe etichetele alimentelor reprezintă o provocare constantă pentru consumatori, din cauza terminologiei complexe și a listelor lungi de ingrediente cu denumiri științifice. Această lucrare prezintă dezvoltarea unei aplicații pentru recunoașterea și interpretarea automată a informațiilor nutriționale folosind tehnologii avansate de recunoaștere optică a caracterelor și procesarea limbajului natural.
@@ -140,10 +147,3 @@ This project was developed as a bachelor's thesis at the University of Bucharest
 ## License
 
 This project is licensed under Creative Commons Attribution 4.0 International License.
-
----
-
-**Author**: Schmidt Robert-Eduard  
-**Supervisor**: Dr. Mureșan Claudia  
-**University**: University of Bucharest, Faculty of Mathematics and Computer Science  
-**Year**: 2025
