@@ -29,6 +29,10 @@ class User(UserBase):
 
     class Config:
         from_attributes = True
+        
+class UserRegisterResponse(BaseModel):
+    message: str
+    user: User
 
 class UserInDB(User):
     hashed_password: str

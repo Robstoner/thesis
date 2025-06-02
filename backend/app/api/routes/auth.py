@@ -2,18 +2,21 @@ from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.schemas.user import UserCreate, User as UserSchema, UserLogin
+from app.schemas.user import UserCreate, User as UserSchema, UserLogin, UserRegisterResponse
 from app.services.auth_service import AuthService
 from app.api.dependencies import get_current_user
 from app.core.config import settings
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
-@router.post("/register", response_model=UserSchema)
+@router.post("/register", response_model=UserRegisterResponse)
 async def register(user: UserCreate, db: Session = Depends(get_db)):
     try:
         db_user = AuthService.create_user(db, user)
-        return db_user
+        return UserRegisterResponse(
+            message="This application uses AI to interpret food ingredients and provide nutritional guidance. The information provided is for educational purposes only and should not be considered as medical, nutritional, or dietary advice. Always consult with qualified healthcare professionals before making significant dietary changes. The AI-generated content may contain errors or inaccuracies.", 
+            user=db_user
+        )
     except HTTPException:
         raise
     except Exception:

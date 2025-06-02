@@ -37,6 +37,7 @@ async def create_food(
         ingredients_raw = await ocr_service.extract_text(ingredients_image)
         ingredients_processed = await ai_service.process_ingredients(ingredients_raw)
         processing_score = await ai_service.extract_processing_score(ingredients_processed)
+        ingredients_processed = ingredients_processed + "AI Analysis - This interpretation is generated automatically and may not be completely accurate. Verify important information independently."
     
     db_food = models.Food(
         name=name,
