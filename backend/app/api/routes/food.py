@@ -123,6 +123,7 @@ async def update_food(
     food_id: int,
     name: Optional[str] = Form(None),
     brand: Optional[str] = Form(None),
+    ingredients_text: Optional[str] = Form(None),
     nutrition_image: UploadFile = File(None),
     ingredients_image: UploadFile = File(None),
     current_user: User = Depends(get_current_user),
@@ -157,6 +158,14 @@ async def update_food(
         processing_score = await ai_service.extract_processing_score(ingredients_processed)
         
         update_data["ingredients_raw"] = ingredients_raw
+        update_data["ingredients_processed"] = ingredients_processed
+        update_data["processing_score"] = processing_score
+    
+    if ingredients_text:
+        ingredients_processed = await ai_service.process_ingredients(ingredients_text)
+        processing_score = await ai_service.extract_processing_score(ingredients_processed)
+        
+        update_data["ingredients_raw"] = ingredients_text
         update_data["ingredients_processed"] = ingredients_processed
         update_data["processing_score"] = processing_score
     
