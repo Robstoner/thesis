@@ -2,28 +2,201 @@ from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.schemas.user import UserCreate, User as UserSchema, UserLogin, UserRegisterResponse
+from app.schemas.user import UserCreate, User as UserSchema, UserLogin, UserRegisterResponse, PasswordResetRequest, PasswordResetConfirm, EmailVerificationRequest
 from app.services.auth_service import AuthService
+from app.services.email_service import EmailService
 from app.api.dependencies import get_current_user
 from app.core.config import settings
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
+email_service = EmailService()
+
 @router.post("/register", response_model=UserRegisterResponse)
 async def register(user: UserCreate, db: Session = Depends(get_db)):
     try:
+        # Create user (inactive by default)
         db_user = AuthService.create_user(db, user)
+        
+        # Create email verification token
+        verification_token = AuthService.create_email_verification_token(
+            data={"sub": db_user.id, "email": db_user.email}, 
+            db=db
+        )
+        
+        # Send verification email
+        email_sent = await email_service.send_verification_email(
+            email=str(db_user.email),
+            username=str(db_user.username),
+            verification_token=verification_token
+        )
+        
+        if not email_sent:
+            # Log warning but don't fail registration
+            pass
+        
         return UserRegisterResponse(
-            message="This application uses AI to interpret food ingredients and provide nutritional guidance. The information provided is for educational purposes only and should not be considered as medical, nutritional, or dietary advice. Always consult with qualified healthcare professionals before making significant dietary changes. The AI-generated content may contain errors or inaccuracies.", 
+            message="Cont creat cu succes! Te rugăm să îți verifici email-ul pentru a activa contul. Verifică și folderul spam. Aplicația folosește AI pentru a interpreta ingredientele alimentelor și pentru a oferi îndrumări nutriționale. Informațiile furnizate sunt doar în scop educativ și nu trebuie considerate ca sfaturi medicale, nutriționale sau dietetice. Consultă întotdeauna profesioniștii din domeniul sănătății înainte de a face modificări semnificative în dietă.", 
             user=db_user
         )
     except HTTPException:
         raise
-    except Exception:
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error creating user"
         )
+
+@router.post("/verify-email")
+async def verify_email(token: str, db: Session = Depends(get_db)):
+    """Verify user email with token from email link"""
+    
+    # Verify the token
+    token_data = AuthService.verify_token(token, "email_verification", db)
+    if token_data is None or token_data.user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Token invalid sau expirat"
+        )
+    
+    # Get user
+    user = AuthService.get_user_by_id(db, user_id=token_data.user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Utilizator nu a fost găsit"
+        )
+    
+    # Check if already verified
+    if bool(user.is_verified):
+        return {
+            "message": "Email-ul este deja verificat",
+            "already_verified": True
+        }
+    
+    # Verify user email
+    success = AuthService.verify_user_email(db, user.id) # type: ignore
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Eroare la verificarea email-ului"
+        )
+
+    if token_data.jti is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Token invalid sau expirat"
+        )
+    
+    # Revoke the verification token after use
+    AuthService.revoke_token(db, token_data.jti, "email_verified")
+    
+    return {
+        "message": "Email verificat cu succes! Contul tău este acum activ.",
+        "verified": True
+    }
+
+@router.post("/resend-verification")
+async def resend_verification_email(
+    request: EmailVerificationRequest, 
+    db: Session = Depends(get_db)
+):
+    """Resend verification email"""
+    
+    # Check if user exists and is unverified
+    user = AuthService.resend_verification_email(db, request.email)
+    if not user:
+        # Don't reveal if email exists or not for security
+        return {
+            "message": "Dacă email-ul este înregistrat și neverificat, un email de verificare a fost trimis."
+        }
+    
+    # Create new verification token
+    verification_token = AuthService.create_email_verification_token(
+        data={"sub": user.id, "email": user.email}, 
+        db=db
+    )
+    
+    # Send verification email
+    email_sent = await email_service.send_verification_email(
+        email=str(user.email),
+        username=str(user.username),
+        verification_token=str(verification_token)
+    )
+    
+    return {
+        "message": "Dacă email-ul este înregistrat și neverificat, un email de verificare a fost trimis."
+    }
+
+@router.post("/request-password-reset")
+async def request_password_reset(
+    request: PasswordResetRequest, 
+    db: Session = Depends(get_db)
+):
+    """Request password reset"""
+    
+    # Check if user exists
+    user = AuthService.get_user_by_email(db, request.email)
+    if not user:
+        # Don't reveal if email exists or not for security
+        return {
+            "message": "Dacă email-ul este înregistrat, un email de resetare parolă a fost trimis."
+        }
+    
+    # Create password reset token
+    reset_token = AuthService.create_password_reset_token(
+        data={"sub": user.id, "email": user.email}, 
+        db=db
+    )
+    
+    # Send password reset email
+    email_sent = await email_service.send_password_reset_email(
+        email=str(user.email),
+        username=str(user.username),
+        reset_token=str(reset_token)
+    )
+    
+    return {
+        "message": "Dacă email-ul este înregistrat, un email de resetare parolă a fost trimis."
+    }
+
+@router.post("/reset-password")
+async def reset_password(
+    request: PasswordResetConfirm, 
+    db: Session = Depends(get_db)
+):
+    """Reset password with token"""
+    
+    # Verify the token
+    token_data = AuthService.verify_token(request.token, "password_reset", db)
+    if token_data is None or token_data.user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Token invalid sau expirat"
+        )
+    
+    # Get user
+    user = AuthService.get_user_by_id(db, user_id=token_data.user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Utilizator nu a fost găsit"
+        )
+    
+    # Update password
+    success = AuthService.update_user_password(db, user.id, request.new_password) # type: ignore
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Eroare la resetarea parolei"
+        )
+    
+    # Revoke all user tokens for security
+    AuthService.revoke_all_user_tokens(db, user.id, "password_reset") # type: ignore
+    
+    return {
+        "message": "Parola a fost resetată cu succes. Te rugăm să te autentifici cu noua parolă."
+    }
 
 @router.post("/login")
 async def login(
@@ -35,14 +208,20 @@ async def login(
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
+            detail="Email sau parolă incorectă",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    if not user.is_active:
+    if not bool(user.is_active):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Inactive user"
+            detail="Contul nu este activ. Te rugăm să îți verifici email-ul pentru activare."
+        )
+    
+    if not bool(user.is_verified):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Email-ul nu este verificat. Te rugăm să îți verifici email-ul."
         )
     
     access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
@@ -75,12 +254,13 @@ async def login(
     )
     
     return {
-        "message": "Login successful",
+        "message": "Autentificare reușită",
         "user": {
             "id": user.id,
             "email": user.email,
             "username": user.username,
-            "full_name": user.full_name
+            "full_name": user.full_name,
+            "is_verified": user.is_verified
         }
     }
 
@@ -114,7 +294,7 @@ async def logout(
     response.delete_cookie(key="refresh_token")
     
     return {
-        "message": "Logout successful",
+        "message": "Deconectare reușită",
         "revoked_tokens": revoked_tokens
     }
 
@@ -133,7 +313,7 @@ async def logout_all_devices(
     response.delete_cookie(key="refresh_token")
     
     return {
-        "message": "Logged out from all devices successfully",
+        "message": "Deconectat de pe toate dispozitivele cu succes",
         "revoked_tokens_count": revoked_count
     }
 
@@ -147,17 +327,17 @@ async def refresh_token(request: Request, response: Response, db: Session = Depe
         )
     
     token_data = AuthService.verify_token(refresh_token, "refresh", db)
-    if token_data is None:
+    if token_data is None or token_data.user_id is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid refresh token"
         )
     
     user = AuthService.get_user_by_id(db, user_id=token_data.user_id)
-    if not user or not user.is_active:
+    if not user or not bool(user.is_active) or not bool(user.is_verified):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found or inactive"
+            detail="User not found, inactive, or email not verified"
         )
     
     access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
@@ -187,7 +367,8 @@ async def verify_token(current_user = Depends(get_current_user)):
     return {
         "valid": True,
         "user_id": current_user.id,
-        "email": current_user.email
+        "email": current_user.email,
+        "is_verified": current_user.is_verified
     }
 
 @router.get("/active-sessions")

@@ -86,7 +86,69 @@ class AuthService:
         return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
     
     @staticmethod
-    def verify_token(token: str, token_type: str = "access", db: Session = None) -> Optional[TokenData]:
+    def create_email_verification_token(data: dict, db: Session) -> str:
+        """Create email verification token"""
+        to_encode = data.copy()
+        expire = datetime.utcnow() + timedelta(minutes=settings.email_verification_expire_minutes)
+        
+        jti = str(uuid.uuid4())
+        
+        if "sub" in to_encode and isinstance(to_encode["sub"], int):
+            to_encode["sub"] = str(to_encode["sub"])
+        
+        to_encode.update({
+            "exp": expire, 
+            "type": "email_verification",
+            "iat": datetime.utcnow(),
+            "jti": jti
+        })
+        
+        user_id = int(data["sub"]) if isinstance(data["sub"], str) else data["sub"]
+        db_token = Token(
+            jti=jti,
+            token_type="email_verification",
+            user_id=user_id,
+            expires_at=expire,
+            is_valid=True
+        )
+        db.add(db_token)
+        db.commit()
+        
+        return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
+    
+    @staticmethod
+    def create_password_reset_token(data: dict, db: Session) -> str:
+        """Create password reset token"""
+        to_encode = data.copy()
+        expire = datetime.utcnow() + timedelta(minutes=settings.email_verification_expire_minutes)  # Same expiry as email verification
+        
+        jti = str(uuid.uuid4())
+        
+        if "sub" in to_encode and isinstance(to_encode["sub"], int):
+            to_encode["sub"] = str(to_encode["sub"])
+        
+        to_encode.update({
+            "exp": expire, 
+            "type": "password_reset",
+            "iat": datetime.utcnow(),
+            "jti": jti
+        })
+        
+        user_id = int(data["sub"]) if isinstance(data["sub"], str) else data["sub"]
+        db_token = Token(
+            jti=jti,
+            token_type="password_reset",
+            user_id=user_id,
+            expires_at=expire,
+            is_valid=True
+        )
+        db.add(db_token)
+        db.commit()
+        
+        return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
+    
+    @staticmethod
+    def verify_token(token: str, token_type: str = "access", db: Session = None) -> Optional[TokenData]: # type: ignore
         try:
             payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
             
@@ -178,7 +240,7 @@ class AuthService:
         user = db.query(User).filter(User.email == email).first()
         if not user:
             return None
-        if not AuthService.verify_password(password, user.hashed_password):
+        if not AuthService.verify_password(password, user.hashed_password): # type: ignore
             return None
         return user
     
@@ -201,12 +263,40 @@ class AuthService:
             email=user.email,
             username=user.username,
             full_name=user.full_name,
-            hashed_password=hashed_password
+            hashed_password=hashed_password,
+            is_active=False,  # User starts inactive until email is verified
+            is_verified=False
         )
         db.add(db_user)
         db.commit()
         db.refresh(db_user)
         return db_user
+    
+    @staticmethod
+    def verify_user_email(db: Session, user_id: int) -> bool:
+        """Mark user email as verified and activate the user"""
+        try:
+            result = db.query(User).filter(User.id == user_id).update({
+                "is_verified": True,
+                "is_active": True
+            })
+            db.commit()
+            return result > 0
+        except Exception:
+            return False
+    
+    @staticmethod
+    def update_user_password(db: Session, user_id: int, new_password: str) -> bool:
+        """Update user password"""
+        try:
+            hashed_password = AuthService.get_password_hash(new_password)
+            result = db.query(User).filter(User.id == user_id).update({
+                "hashed_password": hashed_password
+            })
+            db.commit()
+            return result > 0
+        except Exception:
+            return False
     
     @staticmethod
     def get_user_by_id(db: Session, user_id: int) -> Optional[User]:
@@ -215,3 +305,12 @@ class AuthService:
     @staticmethod
     def get_user_by_email(db: Session, email: str) -> Optional[User]:
         return db.query(User).filter(User.email == email).first()
+    
+    @staticmethod
+    def resend_verification_email(db: Session, email: str) -> Optional[User]:
+        """Get user for resending verification email if they're unverified"""
+        user = db.query(User).filter(
+            User.email == email,
+            User.is_verified == False
+        ).first()
+        return user
