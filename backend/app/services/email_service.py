@@ -27,7 +27,7 @@ class EmailService:
         <html>
         <head>
             <meta charset="utf-8">
-            <title>Verificare Email - Nutrition App</title>
+            <title>Verificare Email - LabelLogic</title>
             <style>
                 body {{
                     font-family: Arial, sans-serif;
@@ -76,7 +76,7 @@ class EmailService:
         </head>
         <body>
             <div class="header">
-                <h1>🥗 Nutrition App</h1>
+                <h1>🥗 LabelLogic</h1>
                 <h2>Verificare Email</h2>
             </div>
             <div class="content">
@@ -118,7 +118,7 @@ class EmailService:
         """
         
         text_body = f"""
-        🥗 Nutrition App - Verificare Email
+        🥗 LabelLogic - Verificare Email
         
         Salut {username}!
 
@@ -144,7 +144,7 @@ class EmailService:
         """
 
         message = MessageSchema(
-            subject="🥗 Verifică-ți email-ul pentru Nutrition App",
+            subject="🥗 Verifică-ți email-ul pentru LabelLogic",
             recipients=[email],
             alternative_body=text_body,
             template_body=html_body,
@@ -167,7 +167,7 @@ class EmailService:
         <html>
         <head>
             <meta charset="utf-8">
-            <title>Resetare Parolă - Nutrition App</title>
+            <title>Resetare Parolă - LabelLogic</title>
             <style>
                 body {{
                     font-family: Arial, sans-serif;
@@ -216,7 +216,7 @@ class EmailService:
         </head>
         <body>
             <div class="header">
-                <h1>🥗 Nutrition App</h1>
+                <h1>🥗 LabelLogic</h1>
                 <h2>Resetare Parolă</h2>
             </div>
             <div class="content">
@@ -255,7 +255,7 @@ class EmailService:
         """
 
         text_body = f"""
-        🥗 Nutrition App - Resetare Parolă
+        🥗 LabelLogic - Resetare Parolă
         
         Salut {username}!
 
@@ -279,7 +279,7 @@ class EmailService:
         """
 
         message = MessageSchema(
-            subject="🔒 Resetare Parolă - Nutrition App",
+            subject="🔒 Resetare Parolă - LabelLogic",
             recipients=[email],
             alternative_body=text_body,
             template_body=html_body,

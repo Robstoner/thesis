@@ -1,4 +1,4 @@
-# Nutrition Analysis App
+# LabelLogic
 
 **Aplicație mobilă pentru recunoașterea și interpretarea informațiilor nutriționale folosind OCR și analiză a ingredientelor**
 

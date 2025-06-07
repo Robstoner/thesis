@@ -3,7 +3,7 @@ version: '3.8'
 services:
   db:
     image: postgres:15
-    container_name: nutrition_db
+    container_name: labellogic_db
     env_file:
       - ./backend/.env
     volumes:
@@ -11,16 +11,16 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U nutrition_user -d nutrition_app"]
+      test: ["CMD-SHELL", "pg_isready -U labellogic_user -d labellogic_app"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
-      - nutrition_network
+      - labellogic_network
 
   minio:
     image: minio/minio:latest
-    container_name: nutrition_minio
+    container_name: labellogic_minio
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -35,14 +35,14 @@ services:
       timeout: 20s
       retries: 3
     networks:
-      - nutrition_network
+      - labellogic_network
     restart: unless-stopped
 
   backend:
     build: 
       context: ./backend
       dockerfile: Dockerfile
-    container_name: nutrition_backend
+    container_name: labellogic_backend
     env_file:
       - ./backend/.env
     ports:
@@ -53,7 +53,7 @@ services:
       minio:
         condition: service_healthy
     networks:
-      - nutrition_network
+      - labellogic_network
     restart: unless-stopped
 
 volumes:
@@ -61,4 +61,4 @@ volumes:
   minio_data:
 
 networks:
-  nutrition_network:
+  labellogic_network:

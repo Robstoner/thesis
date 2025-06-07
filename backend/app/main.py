@@ -17,7 +17,7 @@ food_models.Base.metadata.create_all(bind=engine)
 user_models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
-    title="Nutrition App API",
+    title="LabelLogic API",
     description="API for nutrition analysis application with authentication and image storage",
     version="1.0.0"
 )
