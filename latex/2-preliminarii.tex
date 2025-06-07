@@ -110,6 +110,72 @@ Docker Compose permite definirea și rularea aplicațiilor multi-container folos
 
 Această arhitectură containerizată facilitează dezvoltarea locală, testarea și deployment-ul în producție, oferind o bază solidă pentru scalarea viitoare a aplicației.
 
+Această arhitectură containerizată facilitează dezvoltarea locală, testarea și deployment-ul în producție, oferind o bază solidă pentru scalarea viitoare a aplicației.
+
+\section{Stocarea obiectelor cu MinIO}
+
+Aplicația necesită un sistem robust de stocare pentru imaginile încărcate de utilizatori, incluzând fotografii ale etichetelor nutriționale și listelor de ingrediente. Pentru această cerință, a fost aleasă soluția MinIO, un server de stocare a obiectelor compatibil cu Amazon S3.
+
+\subsection{Principiile stocării obiectelor}
+
+Stocarea obiectelor (object storage) reprezintă o arhitectură de stocare a datelor în care informațiile sunt gestionate ca obiecte, spre deosebire de sistemele tradiționale de fișiere sau blocuri. Fiecare obiect conține datele propriu-zise, metadatele asociate și un identificator unic.
+
+Principalele avantaje ale stocării obiectelor includ:
+
+\textbf{Scalabilitatea}: Capacitatea de a stoca volume mari de date fără limitări impuse de structuri ierarhice complexe.
+
+\textbf{Accesibilitatea}: Interfețe API simple pentru accesarea datelor din aplicații web și mobile.
+
+\textbf{Durabilitatea}: Mecanisme de replicare și redundanță pentru protejarea datelor împotriva pierderii.
+
+\textbf{Gestionarea metadatelor}: Asocierea automată de informații suplimentare cu fiecare obiect stocat.
+
+\subsection{MinIO - Caracteristici și avantaje}
+
+MinIO este o implementare open-source a unui server de stocare a obiectelor, oferind compatibilitate completă cu API-ul Amazon S3. Această compatibilitate permite utilizarea ecosistemului vast de instrumente și biblioteci dezvoltate pentru S3, oferind în același timp independența față de furnizorii de cloud public.
+
+Principalele caracteristici care au motivat alegerea MinIO pentru această aplicație includ:
+
+\textbf{Performanță ridicată}: MinIO este optimizat pentru performanță, oferind viteze de transfer ridicate pentru operațiunile de citire și scriere, esențiale pentru aplicațiile care procesează imagini.
+
+\textbf{Simplicitatea deployment-ului}: Poate fi implementat ca un container Docker simplu, integrându-se perfect în arhitectura containerizată a aplicației.
+
+\textbf{Compatibilitatea S3}: Utilizarea aceluiași API cu Amazon S3 facilitează migrarea către soluții cloud în viitor, fără modificări majore ale codului.
+
+\textbf{Securitatea}: Suport pentru autentificare și autorizare, incluzând posibilitatea de a genera URL-uri pre-semnate pentru accesul temporar la obiecte.
+
+\textbf{Simplitatea administrării}: Interfață web intuitivă pentru monitorizarea și administrarea storage-ului.
+
+\subsection{Integrarea în arhitectura aplicației}
+
+În contextul aplicației de analiză nutrițională, MinIO servește ca sistem centralizat de stocare pentru toate imaginile utilizatorilor. Organizarea datelor urmează o structură ierarhică clară:
+
+\begin{itemize}
+    \item \textbf{Bucket-ul principal}: \texttt{images} - conține toate imaginile aplicației
+    \item \textbf{Organizarea pe id-uri}: \texttt{foodId/nutrition.png} și \texttt{foodId/ingredients.png}
+    \item \textbf{Tipuri de imagini}: separarea clară între imaginile cu informații nutriționale și cele cu liste de ingrediente
+\end{itemize}
+
+Această organizare permite:
+
+\textbf{Izolarea datelor}: Fiecare aliment are propriul director, evitând conflictele între fișiere.
+
+\textbf{Gestionarea eficientă}: Ștergerea și actualizarea imaginilor se realizează prin operații simple pe directoare.
+
+\textbf{Optimizarea accesului}: Generarea de URL-uri pre-semnate permite accesul direct la imagini din interfața utilizator, fără a trece prin serverul backend.
+
+\subsection{Securitatea și controlul accesului}
+
+MinIO implementează un model de securitate robust prin:
+
+\textbf{Autentificare bazată pe chei}: Utilizarea de chei de acces și secrete pentru autentificarea aplicațiilor.
+
+\textbf{URL-uri pre-semnate}: Generarea de link-uri temporare pentru accesul la imagini, cu durată de viață limitată (implicit 1 oră).
+
+\textbf{Izolarea pe utilizatori}: Deși nu se implementează direct în MinIO, logica aplicației asigură că utilizatorii pot accesa doar propriile imagini prin verificarea ownership-ului în baza de date.
+
+\textbf{Criptarea în transport}: Toate comunicațiile cu MinIO pot utiliza HTTPS pentru protejarea datelor în transit.
+
 \section{Procesarea imaginilor pentru OCR}
 
 Pentru ca sistemul OCR să funcționeze optim cu imaginile etichetelor alimentare, este necesară aplicarea unor tehnici de preprocesare a imaginilor.

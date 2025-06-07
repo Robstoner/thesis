@@ -22,6 +22,8 @@ class Food(FoodBase):
     ingredients_raw: Optional[str] = None
     ingredients_processed: Optional[str] = None
     processing_score: Optional[int] = None
+    nutrition_image_path: Optional[str] = None
+    ingredients_image_path: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
 

@@ -2,10 +2,8 @@ services:
   db:
     image: postgres:15
     container_name: nutrition_db_dev
-    environment:
-      POSTGRES_DB: nutrition_app
-      POSTGRES_USER: nutrition_user
-      POSTGRES_PASSWORD: nutrition_password
+    env_file:
+      - ./backend/.env
     volumes:
       - postgres_data_dev:/var/lib/postgresql/data
     ports:
@@ -18,20 +16,40 @@ services:
     networks:
       - nutrition_dev_network
 
+  minio:
+    image: minio/minio:latest
+    container_name: nutrition_minio_dev
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    env_file:
+      - ./backend/.env
+    volumes:
+      - minio_data_dev:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - nutrition_dev_network
+
   backend:
     build: 
       context: ./backend
       dockerfile: Dockerfile.dev
     container_name: nutrition_backend_dev
-    environment:
-      - DATABASE_URL=postgresql://nutrition_user:nutrition_password@db:5432/nutrition_app
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    env_file:
+      - ./backend/.env
     ports:
       - "8000:8000"
     volumes:
       - ./backend:/app
     depends_on:
       db:
+        condition: service_healthy
+      minio:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/health"]
@@ -44,6 +62,7 @@ services:
 
 volumes:
   postgres_data_dev:
+  minio_data_dev:
 
 networks:
   nutrition_dev_network:

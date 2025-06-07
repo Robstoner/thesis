@@ -1,11 +1,11 @@
 meta {
-  name: Get all foods
+  name: Get your foods
   type: http
-  seq: 1
+  seq: 2
 }
 
 get {
-  url: {{baseUrl}}/foods/all/?search&sort_by=processing_score&sort_order=desc&page=1&page_size=10
+  url: {{baseUrl}}/foods/?search&sort_by=processing_score&sort_order=desc&page=1&page_size=10
   body: none
   auth: inherit
 }

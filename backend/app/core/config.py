@@ -3,12 +3,24 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     database_url: str = ""
+    postgres_user: str = ""
+    postgres_password: SecretStr = SecretStr("")
+    postgres_db: str = ""
     gemini_api_key: str = ""
     secret_key: str = "thesis-rxb-super-secret-key-for-jwt"
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     
-    # Email settings
+    # MinIO/S3 Configuration
+    minio_endpoint: str = "localhost:9000"
+    minio_access_key: str = ""
+    minio_secret_key: str = ""
+    minio_root_user: str = ""
+    minio_root_password: SecretStr = SecretStr("")
+    minio_secure: bool = False
+    minio_bucket_name: str = "images"
+    
+    # Mail settings
     mail_username: str = ""
     mail_password: SecretStr = SecretStr("")
     mail_from: str = ""

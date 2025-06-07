@@ -1,7 +1,7 @@
 meta {
   name: Upload food
   type: http
-  seq: 3
+  seq: 4
 }
 
 post {
@@ -14,5 +14,5 @@ body:multipart-form {
   nutrition_image: @file(nutrition_image.jpg)
   name: test2
   brand: Brand
-  ~ingredients_image: @file(ingredients_image.jpg)
+  ingredients_image: @file(ingredients_image.jpg)
 }

@@ -1,15 +1,19 @@
 meta {
   name: Update food
   type: http
-  seq: 4
+  seq: 5
 }
 
 put {
-  url: {{baseUrl}}/foods/1
+  url: {{baseUrl}}/foods/11
   body: multipartForm
   auth: inherit
 }
 
 body:multipart-form {
-  name: test updated
+  ~name: test updated
+  ~brand: Brand updated
+  ~nutrition_image: @file(nutrition_image.jpg)
+  ~ingredients_image: @file(ingredients_image.jpg)
+  ~ingredients_text: pudra de cacao 70%, lapte 20%, conservanti, arome naturale
 }
