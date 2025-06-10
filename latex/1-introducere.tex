@@ -10,27 +10,29 @@ Din experiența personală, a fost necesar în repetate rânduri să explic alto
 
 \section{Problema identificată}
 
-Consumatorii se confruntă cu multiple dificultăți în înțelegerea etichetelor nutriționale:
+Consumatorii se confruntă cu multiple dificultăți în înțelegerea etichetelor nutriționale, o problemă documentată extensiv în literatura de specialitate. Studiile arată că, deși majoritatea consumatorilor declară că citesc etichetele, mulți nu le înțeleg pe deplin, ceea ce le limitează capacitatea de a face alegeri alimentare informate \cite{Campos2011, Grunert2010}. Această discrepanță între intenție și înțelegere subliniază nevoia de instrumente care să faciliteze interpretarea datelor.
 
-\textbf{Complexitatea terminologiei}: Ingredientele sunt frecvent listate folosind denumiri științifice în loc de nume comune, făcând dificilă identificarea lor de către consumatori. De exemplu, acidul ascorbic în loc de vitamina C, sau tocoferoli în loc de vitamina E.
+Principalele obstacole identificate sunt:
 
-\textbf{Lungimea listelor de ingrediente}: Produsele moderne conțin adesea liste foarte lungi de ingrediente, pe care consumatorii nu au timp sau răbdarea să le analizeze în detaliu.
+\textbf{Complexitatea terminologiei}: Ingredientele sunt frecvent listate folosind denumiri științifice în loc de nume comune (de exemplu, acid ascorbic în loc de vitamina C, sau tocoferoli în loc de vitamina E), creând o barieră semnificativă pentru consumatorii fără cunoștințe de specialitate \cite{Grunert2010}.
 
-\textbf{Ingrediente irelevante prezentate ca importante}: Multe produse conțin ingrediente cu nume complexe care în realitate sunt doar arome, coloranți sau conservanți cu impact minimal asupra sănătății, dar care pot intimida consumatorii.
+\textbf{Lungimea listelor de ingrediente}: Produsele moderne, în special cele ultra-procesate, conțin adesea liste foarte lungi de ingrediente, pe care consumatorii nu au timpul sau răbdarea să le analizeze în detaliu în timpul cumpărăturilor.
 
-\textbf{Lipsa contextului}: Chiar dacă un consumator recunoaște un ingredient, acesta poate să nu înțeleagă impactul său asupra sănătății sau să aibă informații incomplete sau eronate despre acesta.
+\textbf{Ingrediente nefamiliare}: Multe produse conțin ingrediente precum aditivi, emulgatori sau stabilizatori, ale căror nume și funcții sunt necunoscute publicului larg, ceea ce poate genera suspiciune sau confuzie \cite{Machin2019}.
+
+\textbf{Lipsa contextului nutrițional}: Chiar dacă un consumator recunoaște un ingredient, acesta poate să nu înțeleagă impactul său real asupra sănătății (de exemplu, cantitatea în care devine relevant) sau să aibă informații incomplete sau eronate, adesea influențate de dezinformarea online.
 
 \section{Importanța înțelegerii informațiilor nutriționale}
 
-Înțelegerea corectă a ingredientelor și a informațiilor nutriționale este crucială din mai multe perspective:
+Înțelegerea corectă a ingredientelor și a informațiilor nutriționale este crucială din mai multe perspective, având un impact direct asupra sănătății individuale și colective.
 
-\textbf{Sănătatea personală}: Cunoașterea compoziției alimentelor permite luarea unor decizii informate despre ce consumăm, contribuind la menținerea unei alimentații echilibrate și sănătoase.
+\textbf{Sănătatea personală}: O mai bună înțelegere a etichetelor este asociată cu alegeri alimentare mai sănătoase, cum ar fi un consum redus de grăsimi, sodiu și zahăr, și un consum crescut de fibre \cite{Campos2011}. Acest lucru contribuie la prevenirea bolilor cronice precum obezitatea, diabetul de tip 2 și bolile cardiovasculare.
 
-\textbf{Identificarea gradului de procesare}: Diferențierea între alimentele naturale, minimally processed și cele ultra-procesate ajută la alegerea unor opțiuni mai sănătoase.
+\textbf{Identificarea gradului de procesare}: Abilitatea de a diferenția între alimentele naturale, minim procesate și cele ultra-procesate este esențială. Consumul ridicat de alimente ultra-procesate este legat de riscuri crescute pentru sănătate, însă consumatorii întâmpină dificultăți în a le identifica corect doar pe baza listei de ingrediente \cite{Machin2019}.
 
-\textbf{Gestionarea alergiilor și intoleranțelor}: Pentru persoanele cu alergii sau intoleranțe alimentare, înțelegerea precisă a ingredientelor poate fi o chestiune de siguranță.
+\textbf{Gestionarea alergiilor și intoleranțelor}: Pentru persoanele cu alergii sau intoleranțe alimentare, citirea corectă și completă a listei de ingrediente este o problemă de siguranță, prevenind reacții adverse potențial severe.
 
-\textbf{Demitizarea ingredientelor}: Multe ingrediente considerate „periculoase" de publicul larg sunt de fapt inofensive sau chiar benefice, în timp ce altele, considerate sigure, pot avea efecte negative. O analiză obiectivă ajută la luarea unor decizii bazate pe evidențe științifice.
+\textbf{Demitizarea ingredientelor}: O analiză obiectivă, bazată pe dovezi, ajută la combaterea dezinformării. Multe ingrediente considerate „periculoase" de publicul larg sunt, în realitate, inofensive sau chiar benefice în cantitățile utilizate, în timp ce altele, considerate sigure, pot avea efecte negative în contextul unei diete dezechilibrate. O aplicație informativă poate oferi claritate și poate promova decizii bazate pe știință.
 
 \section{Obiectivele aplicației}
 
@@ -40,7 +42,7 @@ Aplicația dezvoltată în cadrul acestei lucrări își propune să ofere utili
 
 \textbf{Interpretarea inteligentă a ingredientelor}: Implementarea unui sistem bazat pe inteligență artificială care să traducă listele complexe de ingrediente într-un format ușor de înțeles, explicând rolul și impactul fiecărui component.
 
-\textbf{Evaluarea gradului de procesare}: Calcularea unui scor de procesare pentru fiecare aliment, ajutând utilizatorii să identifice rapid produsele mai naturale față de cele ultra-procesate.
+\textbf{Evaluarea gradului de procesare}: Calcularea unui scor de procesare pentru fiecare aliment, bazat pe sisteme de clasificare recunoscute precum NOVA, ajutând utilizatorii să identifice rapid produsele mai naturale față de cele ultra-procesate.
 
 \textbf{Funcționalități avansate de filtrare și comparare}: Oferirea de instrumente pentru filtrarea alimentelor după diverse criterii nutriționale (conținut de proteine, sodiu, zahăruri etc.) și posibilitatea de a compara produse similare.
 
@@ -53,15 +55,15 @@ Aplicația dezvoltată în cadrul acestei lucrări își propune să ofere utili
 Aplicația utilizează modele de limbaj mari pentru interpretarea ingredientelor, ceea ce prezintă următoarele limitări:
 
 \begin{itemize}
-    \item \textbf{Posibilitatea de erori}: Modelele AI pot genera informații incorecte despre ingrediente sau efectele acestora asupra sănătății
-    \item \textbf{Lipsa validării medicale}: Informațiile generate nu sunt verificate de profesioniști în domeniul sănătății
-    \item \textbf{Actualizarea cunoștințelor}: Modelele pot avea informații învechite despre cercetările nutriționale recente
+    \item \textbf{Posibilitatea de erori}: Modelele AI pot genera informații incorecte despre ingrediente sau efectele acestora asupra sănătății.
+    \item \textbf{Lipsa validării medicale}: Informațiile generate nu sunt verificate de profesioniști în domeniul sănătății și nu trebuie să înlocuiască sfatul medical.
+    \item \textbf{Actualizarea cunoștințelor}: Modelele pot avea informații învechite despre cercetările nutriționale recente.
 \end{itemize}
 
 \subsection{Măsuri de siguranță implementate}
 
 Pentru a atenua aceste riscuri, aplicația implementează:
 \begin{itemize}
-    \item Disclaimere clare în interfață
-    \item Încurajarea utilizatorilor să consulte specialiști
+    \item Disclaimere clare în interfață, care subliniază că aplicația este un instrument informativ și nu unul medical.
+    \item Încurajarea constantă a utilizatorilor să consulte specialiști (medici, dieteticieni) pentru decizii legate de sănătate.
 \end{itemize}
