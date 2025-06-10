@@ -26,9 +26,9 @@ class AuthService:
     def create_access_token(data: dict, db: Session, expires_delta: Optional[timedelta] = None) -> str:
         to_encode = data.copy()
         if expires_delta:
-            expire = datetime.utcnow() + expires_delta
+            expire = datetime.now() + expires_delta
         else:
-            expire = datetime.utcnow() + timedelta(minutes=settings.access_token_expire_minutes)
+            expire = datetime.now() + timedelta(minutes=1)
         
         jti = str(uuid.uuid4())
         
@@ -38,7 +38,7 @@ class AuthService:
         to_encode.update({
             "exp": expire, 
             "type": "access",
-            "iat": datetime.utcnow(),
+            "iat": datetime.now(),
             "jti": jti
         })
         

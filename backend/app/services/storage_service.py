@@ -109,6 +109,15 @@ class StorageService:
                 object_name=object_name,
                 expires=expires_in_seconds_delta
             )
+            
+            # in development, replace http://minio:9000 with the local ip
+            # in production, this will be the MinIO server URL
+            if settings.minio_secure:
+                url = url.replace("http://", "https://")
+            else:
+                url = url.replace("https://", "http://")
+            if (settings.minio_endpoint.startswith("minio")):
+                url = url.replace("http://minio:9000", "http://192.168.1.134:9000")
             return url
         except S3Error as e:
             logger.error(f"Error generating presigned URL: {e}")

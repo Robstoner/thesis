@@ -5,7 +5,11 @@ meta {
 }
 
 post {
-  url: {{baseUrl}}/auth/verify
+  url: {{baseUrl}}/auth/verify-email?token
   body: none
   auth: inherit
+}
+
+params:query {
+  token: 
 }
