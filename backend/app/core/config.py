@@ -11,8 +11,11 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     
+    device_ip: str = "localhost"
+    
     # MinIO/S3 Configuration
     minio_endpoint: str = "localhost:9000"
+    minio_external_endpoint: str = "localhost:9000"
     minio_access_key: str = ""
     minio_secret_key: str = ""
     minio_root_user: str = ""

@@ -12,11 +12,17 @@ logger = logging.getLogger(__name__)
 
 class StorageService:
     def __init__(self):
+        access_key = settings.minio_access_key or settings.minio_root_user
+        secret_key = settings.minio_secret_key or settings.minio_root_password.get_secret_value()
+        if not access_key or not secret_key:
+            raise ValueError("MinIO access key and secret key must be set in the environment variables or config file.")
+        
         self.client = Minio(
             settings.minio_endpoint,
-            access_key=settings.minio_access_key,
-            secret_key=settings.minio_secret_key,
-            secure=settings.minio_secure
+            access_key=access_key,
+            secret_key=secret_key,
+            secure=settings.minio_secure,
+            region="us-west-1"
         )
         self.bucket_name = settings.minio_bucket_name
         self._ensure_bucket_exists()
@@ -103,8 +109,16 @@ class StorageService:
             Presigned URL for the image
         """
         try:
+            external_client = Minio(
+                settings.minio_external_endpoint,
+                access_key=settings.minio_access_key or settings.minio_root_user,
+                secret_key=settings.minio_secret_key or settings.minio_root_password.get_secret_value(),
+                secure=settings.minio_secure,
+                region='us-west-1'
+            )
+            
             expires_in_seconds_delta = timedelta(seconds=expires_in_seconds)
-            url = self.client.presigned_get_object(
+            url = external_client.presigned_get_object(
                 bucket_name=self.bucket_name,
                 object_name=object_name,
                 expires=expires_in_seconds_delta
