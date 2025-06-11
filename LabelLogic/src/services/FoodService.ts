@@ -57,6 +57,24 @@ class FoodService {
     }
   }
 
+  async getProcessingStatus(id: number): Promise<{
+    food_id: number;
+    status: 'processing' | 'analyzing_nutrition' | 'analyzing_ingredients' | 'completed' | 'error';
+    progress_message?: string;
+    has_nutrition_data: boolean;
+    has_ingredients_processed: boolean;
+    has_nutrition_ocr: boolean;
+    has_ingredients_ocr: boolean;
+    last_updated: string;
+  }> {
+    try {
+      const response = await axios.get(`${this.baseURL}/foods/${id}/processing-status`);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Failed to get processing status');
+    }
+  }
+
   async getNutritionImageUrl(id: number): Promise<string> {
     try {
       const response = await axios.get(`${this.baseURL}/foods/${id}/nutrition-image`);
@@ -82,6 +100,35 @@ class FoodService {
       await axios.delete(`${this.baseURL}/foods/${id}`);
     } catch (error: any) {
       throw new Error(error.response?.data?.detail || 'Failed to delete food');
+    }
+  }
+
+  async searchFoods(query: string, page = 1, pageSize = 20): Promise<FoodListResponse> {
+    return this.getFoods(page, pageSize, query);
+  }
+
+  async getFilteredFoods(filters: {
+    min_protein?: number;
+    max_calories?: number;
+    max_sodium?: number;
+    max_processing_score?: number;
+    has_ingredients?: boolean;
+    page?: number;
+    page_size?: number;
+  }): Promise<FoodListResponse> {
+    try {
+      const params = new URLSearchParams();
+      
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          params.append(key, value.toString());
+        }
+      });
+
+      const response = await axios.get(`${this.baseURL}/foods/filter/advanced?${params}`);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Failed to filter foods');
     }
   }
 }

@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import FoodService from '../../services/FoodService';
+import { Food } from '../../types';
 
 interface AddFoodScreenProps {
   navigation: any;
@@ -23,6 +24,7 @@ export default function AddFoodScreen({ navigation }: AddFoodScreenProps) {
   const [nutritionImage, setNutritionImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [ingredientsImage, setIngredientsImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [loading, setLoading] = useState(false);
+  const [processingFood, setProcessingFood] = useState<Food | null>(null);
 
   const requestPermissions = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -132,18 +134,39 @@ export default function AddFoodScreen({ navigation }: AddFoodScreenProps) {
         } as any);
       }
 
-      await FoodService.createFood(formData);
+      const newFood = await FoodService.createFood(formData);
       
-      Alert.alert(
-        'Success', 
-        'Food added successfully!',
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
-      );
+      if (newFood.processing_status === 'processing') {
+        setProcessingFood(newFood);
+        
+        Alert.alert(
+          'Food Added!',
+          'Your food has been saved. We\'re analyzing the images in the background. You can check back later for the full nutritional analysis.',
+          [
+            { text: 'View Food', onPress: () => navigation.navigate('FoodDetail', { foodId: newFood.id }) },
+            { text: 'Add Another', onPress: () => resetForm() }
+          ]
+        );
+      } else {
+        Alert.alert(
+          'Success', 
+          'Food added and analyzed successfully!',
+          [{ text: 'OK', onPress: () => navigation.goBack() }]
+        );
+      }
     } catch (error: any) {
       Alert.alert('Error', error.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const resetForm = () => {
+    setName('');
+    setBrand('');
+    setNutritionImage(null);
+    setIngredientsImage(null);
+    setProcessingFood(null);
   };
 
   return (
@@ -229,16 +252,27 @@ export default function AddFoodScreen({ navigation }: AddFoodScreenProps) {
         </View>
 
         <TouchableOpacity 
-          style={[styles.submitButton, loading && styles.submitButtonDisabled]}
-          onPress={handleSubmit}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <Text style={styles.submitButtonText}>Add Food</Text>
-          )}
-        </TouchableOpacity>
+        style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+        onPress={handleSubmit}
+        disabled={loading}
+      >
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator color="white" size="small" />
+            <Text style={styles.submitButtonText}>Adding Food...</Text>
+          </View>
+        ) : (
+          <Text style={styles.submitButtonText}>Add Food</Text>
+        )}
+      </TouchableOpacity>
+      
+      {processingFood && (
+        <View style={styles.processingNotice}>
+          <Text style={styles.processingText}>
+            🔄 Analyzing images in background...
+          </Text>
+        </View>
+      )}
 
         <View style={styles.bottomPadding} />
       </ScrollView>
@@ -366,5 +400,24 @@ const styles = StyleSheet.create({
   },
   bottomPadding: {
     height: 40,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  processingNotice: {
+    backgroundColor: '#fff3cd',
+    borderColor: '#ffeaa7',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 16,
+    marginHorizontal: 20,
+  },
+  processingText: {
+    color: '#856404',
+    textAlign: 'center',
+    fontSize: 14,
   },
 });

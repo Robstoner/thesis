@@ -1,5 +1,6 @@
+# backend/app/schemas/food.py
 from pydantic import BaseModel
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Literal
 from datetime import datetime
 
 class FoodBase(BaseModel):
@@ -19,8 +20,14 @@ class FoodCreate(FoodBase):
 
 class Food(FoodBase):
     id: int
-    ingredients_raw: Optional[str] = None
-    ingredients_processed: Optional[str] = None
+    
+    # OCR extracted text (raw)
+    nutrition_ocr_text: Optional[str] = None  # Raw OCR from nutrition label
+    ingredients_raw: Optional[str] = None  # Raw OCR from ingredients list
+    
+    # AI processed content
+    ingredients_processed: Optional[str] = None  # AI analysis of ingredients
+    
     processing_score: Optional[int] = None
     nutrition_image_path: Optional[str] = None
     ingredients_image_path: Optional[str] = None
@@ -29,6 +36,15 @@ class Food(FoodBase):
 
     class Config:
         from_attributes = True
+
+class FoodWithProcessingStatus(Food):
+    processing_status: Literal["processing", "analyzing_nutrition", "analyzing_ingredients", "completed", "error"] = "completed"
+    progress_message: Optional[str] = None
+
+# Detailed food response with all OCR and processing info
+class FoodDetailed(FoodWithProcessingStatus):
+    """Detailed food response including all OCR text and processing information"""
+    pass
 
 # Pagination schemas
 class PaginationMeta(BaseModel):
@@ -41,4 +57,8 @@ class PaginationMeta(BaseModel):
 
 class FoodListResponse(BaseModel):
     items: Sequence[Food]
+    pagination: PaginationMeta
+
+class FoodListResponseWithStatus(BaseModel):
+    items: Sequence[FoodWithProcessingStatus]
     pagination: PaginationMeta

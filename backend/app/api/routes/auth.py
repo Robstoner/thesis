@@ -359,7 +359,10 @@ async def refresh_token(request: Request, response: Response, db: Session = Depe
         samesite="lax"
     )
     
-    return {"message": "Token refreshed successfully"}
+    return {
+        "message": "Token refreshed successfully",
+        "access_token": new_access_token
+    }
 
 @router.get("/me", response_model=UserSchema)
 async def get_current_user_info(current_user = Depends(get_current_user)):

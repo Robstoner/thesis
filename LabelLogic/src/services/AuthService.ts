@@ -31,24 +31,21 @@ class AuthService {
       },
       async (error) => {
         const refreshToken = await SecureStore.getItemAsync("refresh_token");
-console.log(refreshToken);
+
         if (error.response?.status === 401) {
-          console.log("Unauthorized request");
           if (refreshToken) {
-            console.log("Attempting to refresh token");
             try {
               const response = await axios.post(
                 `${this.baseURL}/auth/refresh`,
                 { refresh_token: refreshToken }
               );
-              const { access_token, user } = response.data;
+              const { access_token } = response.data;
 
               if (!access_token) {
                 throw new Error("No access token received from server");
               }
 
               await SecureStore.setItemAsync("access_token", access_token);
-              await SecureStore.setItemAsync("user", JSON.stringify(user));
 
               error.config.headers["Authorization"] = `Bearer ${access_token}`;
               return axios(error.config);
@@ -56,7 +53,6 @@ console.log(refreshToken);
               await this.logout();
             }
           } else {
-            console.log("No refresh token available, logging out");
             if (
               !this.isLoggingOut &&
               !error.config?.url?.includes("/auth/logout")
@@ -65,7 +61,6 @@ console.log(refreshToken);
             }
           }
         }
-        console.log("Error response:", error.response);
 
         return Promise.reject(error);
       }

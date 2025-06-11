@@ -9,10 +9,12 @@ import {
   ActivityIndicator,
   Image,
   Dimensions,
+  RefreshControl,
 } from 'react-native';
 import { Food } from '../../types';
 import FoodService from '../../services/FoodService';
 import { StackScreenProps } from '@react-navigation/stack';
+import { useProcessingStatus } from '../../hooks/useProcessingStatus';
 
 type RootStackParamList = {
   FoodList: undefined;
@@ -25,6 +27,78 @@ type FoodDetailScreenProps = StackScreenProps<RootStackParamList, 'FoodDetail'>;
 
 const { width } = Dimensions.get('window');
 
+const ProcessingProgress = ({ status, progressMessage, progressPercentage, detailedSteps, hasError }: any) => {
+  if (!status) return null;
+
+  return (
+    <View style={styles.processingCard}>
+      <View style={styles.processingHeader}>
+        <ActivityIndicator size="small" color={hasError ? '#e74c3c' : '#f39c12'} />
+        <Text style={styles.processingTitle}>
+          {hasError ? 'Analysis Failed' : 'Analyzing Images'}
+        </Text>
+      </View>
+      
+      {/* Overall Progress Bar */}
+      <View style={styles.progressContainer}>
+        <View style={styles.progressBar}>
+          <View 
+            style={[
+              styles.progressFill, 
+              { 
+                width: `${progressPercentage}%`,
+                backgroundColor: hasError ? '#e74c3c' : '#f39c12'
+              }
+            ]} 
+          />
+        </View>
+        <Text style={styles.progressText}>{progressPercentage}%</Text>
+      </View>
+      
+      {/* Current Status Message */}
+      <Text style={styles.progressMessage}>
+        {progressMessage}
+      </Text>
+      
+      {/* Detailed Steps */}
+      <View style={styles.stepsContainer}>
+        {detailedSteps.map((step: any, index: number) => (
+          <View key={index} style={styles.stepItem}>
+            <View style={[
+              styles.stepIndicator,
+              {
+                backgroundColor: step.completed ? '#27ae60' : 
+                               step.active ? '#f39c12' : '#e9ecef'
+              }
+            ]}>
+              {step.completed ? (
+                <Text style={styles.stepCheckmark}>✓</Text>
+              ) : step.active ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <Text style={styles.stepNumber}>{index + 1}</Text>
+              )}
+            </View>
+            <View style={styles.stepContent}>
+              <Text style={[
+                styles.stepName,
+                { color: step.completed || step.active ? '#2c3e50' : '#6c757d' }
+              ]}>
+                {step.name}
+              </Text>
+              <Text style={styles.stepDescription}>{step.description}</Text>
+            </View>
+          </View>
+        ))}
+      </View>
+      
+      <Text style={styles.progressSubtext}>
+        This process uses both OCR and AI for maximum accuracy. It usually takes 30-90 seconds.
+      </Text>
+    </View>
+  );
+};
+
 export default function FoodDetailScreen({ navigation, route }: FoodDetailScreenProps) {
   const { foodId } = route.params;
   const [food, setFood] = useState<Food | null>(null);
@@ -32,26 +106,52 @@ export default function FoodDetailScreen({ navigation, route }: FoodDetailScreen
   const [ingredientsImageUrl, setIngredientsImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [imageLoading, setImageLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  
+  const {
+    status,
+    isProcessing,
+    isCompleted,
+    hasError,
+    progressMessage,
+    progressPercentage,
+    detailedSteps
+  } = useProcessingStatus(
+    food?.processing_status && ['processing', 'analyzing_nutrition', 'analyzing_ingredients'].includes(food.processing_status) ? foodId : null,
+    {
+      pollInterval: 3000,
+      maxRetries: 30, // 90 seconds
+      enabled: true
+    }
+  );
 
   useEffect(() => {
     loadFood();
   }, []);
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await loadFood();
+    } catch (error) {
+      // Error handling is already done in loadFood
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const loadFood = async () => {
     try {
+      if (!refreshing) {
+        setLoading(true);
+      }
       const foodData = await FoodService.getFoodById(foodId);
       setFood(foodData);
-      
-      // Load image URLs if images exist
-      if (foodData.nutrition_image_path) {
-        loadNutritionImage();
-      }
-      if (foodData.ingredients_image_path) {
-        loadIngredientsImage();
-      }
     } catch (error: any) {
       Alert.alert('Error', error.message);
-      navigation.goBack();
+      if (!food) {
+        navigation.goBack();
+      }
     } finally {
       setLoading(false);
     }
@@ -181,7 +281,59 @@ export default function FoodDetailScreen({ navigation, route }: FoodDetailScreen
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#27ae60']} // Android
+            tintColor={'#27ae60'} // iOS
+            title="Pull to refresh" // iOS
+            titleColor={'#27ae60'} // iOS
+          />
+        }
+        showsVerticalScrollIndicator={false}
+      >
+        {isProcessing && (
+          <ProcessingProgress 
+            status={status}
+            progressMessage={progressMessage}
+            progressPercentage={progressPercentage}
+            detailedSteps={detailedSteps}
+            hasError={hasError}
+          />
+        )}
+
+        {hasError && (
+          <View style={styles.errorCard}>
+            <Text style={styles.errorIcon}>⚠️</Text>
+            <Text style={styles.errorTitle}>Analysis Failed</Text>
+            <Text style={styles.errorMessage}>
+              {status?.progress_message || progressMessage}
+            </Text>
+            <TouchableOpacity 
+              style={styles.retryButton}
+              onPress={() => {
+                // You could implement a retry mechanism here
+                Alert.alert('Retry', 'Please try uploading the images again from the edit screen.');
+              }}
+            >
+              <Text style={styles.retryButtonText}>Upload New Images</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {isCompleted && food?.processing_status !== 'completed' && (
+          <View style={styles.successCard}>
+            <Text style={styles.successIcon}>✅</Text>
+            <Text style={styles.successTitle}>Analysis Complete!</Text>
+            <Text style={styles.successMessage}>
+              Your food has been analyzed using both OCR and AI for maximum accuracy.
+            </Text>
+          </View>
+        )}
+
         {/* Basic Information */}
         <View style={styles.section}>
           <Text style={styles.foodName}>{food.name}</Text>
@@ -246,14 +398,14 @@ export default function FoodDetailScreen({ navigation, route }: FoodDetailScreen
         )}
 
         {/* Raw Ingredients */}
-        {food.ingredients_raw && (
+        {/* {food.ingredients_raw && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Raw Ingredients</Text>
             <View style={styles.textContainer}>
               <Text style={styles.ingredientsText}>{food.ingredients_raw}</Text>
             </View>
           </View>
-        )}
+        )} */}
 
         {/* Processed Ingredients */}
         {food.ingredients_processed && (
@@ -283,6 +435,230 @@ export default function FoodDetailScreen({ navigation, route }: FoodDetailScreen
     </View>
   );
 }
+
+const additionalStyles = StyleSheet.create({
+  // Enhanced processing card styles
+  stepsContainer: {
+    marginTop: 16,
+    marginBottom: 12,
+  },
+  stepItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  stepIndicator: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  stepCheckmark: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  stepNumber: {
+    color: '#6c757d',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  stepContent: {
+    flex: 1,
+    paddingTop: 2,
+  },
+  stepName: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  stepDescription: {
+    fontSize: 14,
+    color: '#6c757d',
+    lineHeight: 18,
+  },
+
+  // OCR section styles
+  ocrSubsection: {
+    marginBottom: 16,
+  },
+  ocrSubtitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2c3e50',
+    marginBottom: 8,
+  },
+  ocrTextContainer: {
+    backgroundColor: '#f8f9fa',
+    borderWidth: 1,
+    borderColor: '#dee2e6',
+    borderRadius: 8,
+    padding: 12,
+    maxHeight: 150,
+  },
+  ocrText: {
+    fontSize: 14,
+    color: '#495057',
+    lineHeight: 20,
+    fontFamily: 'monospace', // Use monospace for better readability of OCR text
+  },
+  ocrDisclaimer: {
+    fontSize: 12,
+    color: '#6c757d',
+    fontStyle: 'italic',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+
+  // Enhanced error/success cards
+  retryButton: {
+    backgroundColor: '#007bff',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+    marginTop: 12,
+    alignSelf: 'center',
+  },
+  retryButtonText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+
+  // Enhanced progress indicators
+  progressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  progressBar: {
+    flex: 1,
+    height: 8,
+    backgroundColor: '#e9ecef',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginRight: 12,
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 4,
+    // transition: 'width 0.3s ease',
+  },
+  progressText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6c757d',
+    minWidth: 40,
+  },
+  progressMessage: {
+    fontSize: 16,
+    color: '#2c3e50',
+    fontWeight: '500',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  progressSubtext: {
+    fontSize: 12,
+    color: '#6c757d',
+    lineHeight: 18,
+    textAlign: 'center',
+    marginTop: 8,
+  },
+
+  // Processing card enhancements
+  processingCard: {
+    backgroundColor: 'white',
+    marginHorizontal: 16,
+    marginVertical: 8,
+    padding: 20,
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#f39c12',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  processingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  processingTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#2c3e50',
+    marginLeft: 8,
+  },
+
+  // Error and success card enhancements
+  errorCard: {
+    backgroundColor: 'white',
+    marginHorizontal: 16,
+    marginVertical: 8,
+    padding: 20,
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#e74c3c',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.22,
+    shadowRadius: 2.22,
+    alignItems: 'center',
+  },
+  errorIcon: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#e74c3c',
+    marginBottom: 8,
+  },
+  errorMessage: {
+    fontSize: 14,
+    color: '#6c757d',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  successCard: {
+    backgroundColor: 'white',
+    marginHorizontal: 16,
+    marginVertical: 8,
+    padding: 20,
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#27ae60',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.22,
+    shadowRadius: 2.22,
+    alignItems: 'center',
+  },
+  successIcon: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  successTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#27ae60',
+    marginBottom: 8,
+  },
+  successMessage: {
+    fontSize: 14,
+    color: '#6c757d',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -454,4 +830,5 @@ const styles = StyleSheet.create({
   bottomPadding: {
     height: 40,
   },
+  ...additionalStyles
 });

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { Food } from '../types';
 
 interface FoodCardProps {
@@ -27,6 +27,13 @@ export default function FoodCard({ food, onPress }: FoodCardProps) {
       <View style={styles.header}>
         <Text style={styles.name}>{food.name}</Text>
         {food.brand && <Text style={styles.brand}>{food.brand}</Text>}
+        
+        {food.processing_status === 'processing' && (
+          <View style={styles.processingBadge}>
+            <ActivityIndicator size="small" color="#f39c12" />
+            <Text style={styles.processingBadgeText}>Analyzing...</Text>
+          </View>
+        )}
       </View>
       
       <View style={styles.content}>
@@ -124,11 +131,6 @@ const styles = StyleSheet.create({
     color: '#7f8c8d',
     marginTop: 2,
   },
-  processingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   processingDot: {
     width: 8,
     height: 8,
@@ -139,5 +141,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#7f8c8d',
     fontWeight: '500',
+  },
+  processingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff3cd',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  processingBadgeText: {
+    color: '#856404',
+    fontSize: 12,
+    marginLeft: 4,
   },
 });

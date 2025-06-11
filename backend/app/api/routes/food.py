@@ -1,5 +1,6 @@
+import logging
 from typing import Optional
-from fastapi import APIRouter, File, Form, UploadFile, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, File, Form, UploadFile, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.database import get_db
@@ -17,9 +18,192 @@ router = APIRouter(prefix="/foods", tags=["foods"])
 ocr_service = OCRService()
 ai_service = AIService()
 storage_service = StorageService()
+logger = logging.getLogger(__name__)
 
-@router.post("/", response_model=schemas.Food)
+async def process_food_images_background(
+    food_id: int,
+    nutrition_image_data: Optional[bytes],
+    ingredients_image_data: Optional[bytes],
+    db_session_maker
+):
+    """Background task to process food images with OCR + AI and granular progress tracking"""
+    
+    # Create a new database session for the background task
+    db = db_session_maker()
+    
+    try:
+        logger.info(f"Starting background processing for food {food_id}")
+        
+        # Set initial processing status
+        db.query(models.Food).filter(models.Food.id == food_id).update({
+            "processing_status": "processing",
+            "progress_message": "Starting analysis..."
+        })
+        db.commit()
+        
+        nutrition_data = {}
+        ingredients_processed = None
+        processing_score = None
+        nutrition_ocr_text = ""
+        ingredients_ocr_text = ""
+        
+        # Process nutrition image if present
+        if nutrition_image_data:
+            try:
+                logger.info(f"Processing nutrition image for food {food_id}")
+                
+                # Update status to OCR extraction
+                db.query(models.Food).filter(models.Food.id == food_id).update({
+                    "processing_status": "processing",
+                    "progress_message": "Extracting text from nutrition label..."
+                })
+                db.commit()
+                
+                # Step 1: Extract OCR text
+                try:
+                    nutrition_ocr_text = ocr_service.extract_text_from_bytes(nutrition_image_data)
+                    logger.info(f"OCR extracted from nutrition image for food {food_id}: {nutrition_ocr_text[:100]}...")
+                except Exception as ocr_e:
+                    logger.warning(f"OCR failed for nutrition image {food_id}: {ocr_e}")
+                    nutrition_ocr_text = ""
+                
+                # Update status to AI analysis
+                db.query(models.Food).filter(models.Food.id == food_id).update({
+                    "processing_status": "analyzing_nutrition",
+                    "progress_message": "Analyzing nutrition information with AI..."
+                })
+                db.commit()
+                
+                # Step 2: Use both image and OCR text with AI
+                if nutrition_ocr_text.strip():
+                    # Use both image and OCR text
+                    nutrition_data = await ai_service.parse_nutrition_info_from_image_and_ocr(
+                        nutrition_image_data, nutrition_ocr_text
+                    )
+                else:
+                    # Fallback to image-only processing
+                    logger.info(f"No OCR text available, using image-only processing for nutrition {food_id}")
+                    nutrition_data = await ai_service.parse_nutrition_info_from_image(nutrition_image_data)
+                
+                logger.info(f"Nutrition data extracted for food {food_id}: {nutrition_data}")
+                
+                # Update with nutrition data immediately
+                nutrition_update = {}
+                for key, value in nutrition_data.items():
+                    if value is not None:
+                        nutrition_update[key] = value
+                
+                # Also store the OCR text for reference
+                if nutrition_ocr_text.strip():
+                    nutrition_update["nutrition_ocr_text"] = nutrition_ocr_text
+                
+                if nutrition_update:
+                    db.query(models.Food).filter(models.Food.id == food_id).update(nutrition_update)
+                    db.commit()
+                
+            except Exception as e:
+                logger.error(f"Error processing nutrition image for food {food_id}: {e}")
+                # Update with error message but continue processing
+                db.query(models.Food).filter(models.Food.id == food_id).update({
+                    "progress_message": f"Nutrition analysis failed: {str(e)[:100]}"
+                })
+                db.commit()
+        
+        # Process ingredients image if present
+        if ingredients_image_data:
+            try:
+                logger.info(f"Processing ingredients image for food {food_id}")
+                
+                # Update status to OCR extraction
+                db.query(models.Food).filter(models.Food.id == food_id).update({
+                    "processing_status": "processing",
+                    "progress_message": "Extracting text from ingredients list..."
+                })
+                db.commit()
+                
+                # Step 1: Extract OCR text
+                try:
+                    ingredients_ocr_text = ocr_service.extract_text_from_bytes(ingredients_image_data)
+                    logger.info(f"OCR extracted from ingredients image for food {food_id}: {ingredients_ocr_text[:100]}...")
+                except Exception as ocr_e:
+                    logger.warning(f"OCR failed for ingredients image {food_id}: {ocr_e}")
+                    ingredients_ocr_text = ""
+                
+                # Update status to AI analysis
+                db.query(models.Food).filter(models.Food.id == food_id).update({
+                    "processing_status": "analyzing_ingredients",
+                    "progress_message": "Analyzing ingredients with AI..."
+                })
+                db.commit()
+                
+                # Step 2: Use both image and OCR text with AI
+                if ingredients_ocr_text.strip():
+                    # Use both image and OCR text
+                    ingredients_processed = await ai_service.process_ingredients_from_image_and_ocr(
+                        ingredients_image_data, ingredients_ocr_text
+                    )
+                else:
+                    # Fallback to image-only processing
+                    logger.info(f"No OCR text available, using image-only processing for ingredients {food_id}")
+                    ingredients_processed = await ai_service.process_ingredients_from_image(ingredients_image_data)
+                
+                processing_score = await ai_service.extract_processing_score(ingredients_processed)
+                
+                # Add disclaimer
+                ingredients_processed = ingredients_processed + "\n\n**AI Analysis Disclaimer**: This interpretation is generated automatically and may not be completely accurate. Verify important information independently."
+                
+                logger.info(f"Ingredients processed for food {food_id}, score: {processing_score}")
+                
+                # Update with ingredients data immediately
+                ingredients_update = {
+                    "ingredients_processed": ingredients_processed,
+                    "processing_score": processing_score
+                }
+                
+                # Store both raw OCR text and processed ingredients
+                if ingredients_ocr_text.strip():
+                    ingredients_update["ingredients_raw"] = ingredients_ocr_text
+                
+                db.query(models.Food).filter(models.Food.id == food_id).update(ingredients_update)
+                db.commit()
+                
+            except Exception as e:
+                logger.error(f"Error processing ingredients image for food {food_id}: {e}")
+                # Update with error message but continue
+                db.query(models.Food).filter(models.Food.id == food_id).update({
+                    "progress_message": f"Ingredients analysis failed: {str(e)[:100]}"
+                })
+                db.commit()
+        
+        # Mark as completed
+        db.query(models.Food).filter(models.Food.id == food_id).update({
+            "processing_status": "completed",
+            "progress_message": "Analysis complete! Both OCR and AI processing finished successfully."
+        })
+        db.commit()
+        
+        logger.info(f"Completed background processing for food {food_id}")
+        
+    except Exception as e:
+        logger.error(f"Critical error in background processing for food {food_id}: {e}")
+        
+        # Mark as error
+        try:
+            db.query(models.Food).filter(models.Food.id == food_id).update({
+                "processing_status": "error",
+                "progress_message": f"Analysis failed: {str(e)[:100]}. Please try uploading the images again."
+            })
+            db.commit()
+        except:
+            pass  # Don't fail if we can't update error status
+        
+        db.rollback()
+    finally:
+        db.close()
+
+@router.post("/", response_model=schemas.FoodWithProcessingStatus)
 async def create_food(
+    background_tasks: BackgroundTasks,
     name: str = Form(...),
     brand: Optional[str] = Form(None),
     nutrition_image: UploadFile = File(None),
@@ -27,11 +211,19 @@ async def create_food(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    # Create food record first to get ID
+    """Create food with immediate response and background AI processing"""
+    
+    # Determine initial processing status
+    will_process_images = nutrition_image is not None or ingredients_image is not None
+    initial_status = "processing" if will_process_images else "completed"
+    initial_message = "Starting analysis..." if will_process_images else "No images to process"
+    
     db_food = models.Food(
         name=name,
         brand=brand,
-        user_id=current_user.id
+        user_id=current_user.id,
+        processing_status=initial_status,
+        progress_message=initial_message
     )
     
     db.add(db_food)
@@ -39,67 +231,108 @@ async def create_food(
     db.refresh(db_food)
     
     food_id = db_food.id
+    nutrition_image_data = None
+    ingredients_image_data = None
     
     try:
-        # Process nutrition image
-        nutrition_data = {}
         if nutrition_image:
-            # Read image file once
             nutrition_image_data = await nutrition_image.read()
-            
-            # Upload nutrition image to storage using bytes
             nutrition_path = await storage_service.upload_food_image(
                 food_id, nutrition_image_data, "nutrition", nutrition_image.content_type # type: ignore
             )
-            
-            # Extract text from image bytes
-            nutrition_text = ocr_service.extract_text_from_bytes(nutrition_image_data)
-            nutrition_data = await ai_service.parse_nutrition_info(nutrition_text)
-            
-            # Update food record with nutrition image path
             db_food.nutrition_image_path = nutrition_path # type: ignore
         
-        # Process ingredients image
-        ingredients_processed = None
-        ingredients_raw = None
-        processing_score = None
         if ingredients_image:
-            # Read image file once
             ingredients_image_data = await ingredients_image.read()
-            
-            # Upload ingredients image to storage using bytes
             ingredients_path = await storage_service.upload_food_image(
                 food_id, ingredients_image_data, "ingredients", ingredients_image.content_type # type: ignore
             )
-            
-            # Extract text from image bytes
-            ingredients_raw = ocr_service.extract_text_from_bytes(ingredients_image_data)
-            ingredients_processed = await ai_service.process_ingredients(ingredients_raw)
-            processing_score = await ai_service.extract_processing_score(ingredients_processed)
-            ingredients_processed = ingredients_processed + "\n\n**AI Analysis Disclaimer**: This interpretation is generated automatically and may not be completely accurate. Verify important information independently."
-            
-            # Update food record with ingredients data
             db_food.ingredients_image_path = ingredients_path # type: ignore
-            db_food.ingredients_raw = ingredients_raw # type: ignore
-            db_food.ingredients_processed = ingredients_processed # type: ignore
-            db_food.processing_score = processing_score # type: ignore
 
-        # Update food record with nutrition data
-        for key, value in nutrition_data.items():
-            if value is not None:
-                setattr(db_food, key, value)
-        
+        # Commit image paths
         db.commit()
         db.refresh(db_food)
+        
+        # Start background processing
+        if nutrition_image_data or ingredients_image_data:
+            from app.database import SessionLocal
+            background_tasks.add_task(
+                process_food_images_background,
+                food_id, # type: ignore
+                nutrition_image_data,
+                ingredients_image_data,
+                SessionLocal
+            )
         
         return db_food
         
     except Exception as e:
-        # If something goes wrong, clean up uploaded images and delete food record
         storage_service.delete_food_images(food_id) # type: ignore
         db.delete(db_food)
         db.commit()
-        raise HTTPException(status_code=500, detail=f"Error processing food: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error creating food: {str(e)}")
+    
+@router.get("/{food_id}/processing-status")
+async def get_processing_status(
+    food_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Check detailed processing status of food with OCR and AI progress"""
+    
+    food = db.query(models.Food).filter(
+        models.Food.id == food_id,
+        models.Food.user_id == current_user.id
+    ).first()
+    
+    if not food:
+        raise HTTPException(status_code=404, detail="Food not found")
+    
+    # Get current processing status from database
+    current_status = getattr(food, 'processing_status', 'completed')
+    progress_message = getattr(food, 'progress_message', None)
+    
+    # Determine status based on available data if not explicitly set
+    if current_status == 'completed' or current_status is None:
+        has_nutrition_image = food.nutrition_image_path is not None
+        has_ingredients_image = food.ingredients_image_path is not None
+        has_nutrition_data = any([
+            food.calories_per_100g, food.protein_per_100g, food.carbs_per_100g, food.fat_per_100g
+        ])
+        has_ingredients_processed = food.ingredients_processed is not None
+        has_nutrition_ocr = food.nutrition_ocr_text is not None
+        has_ingredients_ocr = food.ingredients_raw is not None
+        
+        # More detailed status determination
+        if has_nutrition_image and not has_nutrition_ocr and not has_nutrition_data:
+            current_status = "processing"
+            progress_message = "Extracting text from nutrition label..."
+        elif has_ingredients_image and not has_ingredients_ocr and not has_ingredients_processed:
+            current_status = "processing"
+            progress_message = "Extracting text from ingredients list..."
+        elif has_nutrition_ocr and not has_nutrition_data:
+            current_status = "analyzing_nutrition"
+            progress_message = "Analyzing nutrition information with AI..."
+        elif has_ingredients_ocr and not has_ingredients_processed:
+            current_status = "analyzing_ingredients"
+            progress_message = "Analyzing ingredients with AI..."
+        else:
+            current_status = "completed"
+            if not progress_message:
+                progress_message = "Analysis complete! OCR and AI processing finished successfully."
+    
+    return {
+        "food_id": food_id,
+        "status": current_status,
+        "progress_message": progress_message,
+        "has_nutrition_data": any([
+            food.calories_per_100g, food.protein_per_100g, food.carbs_per_100g, food.fat_per_100g
+        ]),
+        "has_ingredients_processed": food.ingredients_processed is not None,
+        "has_nutrition_ocr": food.nutrition_ocr_text is not None,
+        "has_ingredients_ocr": food.ingredients_raw is not None,
+        "last_updated": food.updated_at or food.created_at
+    }
 
 @router.get("/all", response_model=schemas.FoodListResponse)
 async def get_all_foods(
@@ -196,7 +429,7 @@ async def get_foods(
         pagination=pagination_meta
     )
     
-@router.get("/{food_id}", response_model=schemas.Food)
+@router.get("/{food_id}", response_model=schemas.FoodWithProcessingStatus)
 async def get_food(
     food_id: int, 
     current_user: User = Depends(get_current_user),
@@ -209,7 +442,27 @@ async def get_food(
     
     if not food:
         raise HTTPException(status_code=404, detail="Food not found")
-    return food
+    
+    # Determine processing status
+    has_nutrition_image = food.nutrition_image_path is not None
+    has_ingredients_image = food.ingredients_image_path is not None
+    has_nutrition_data = any([
+        food.calories_per_100g, food.protein_per_100g, food.carbs_per_100g, food.fat_per_100g
+    ])
+    has_ingredients_processed = food.ingredients_processed is not None
+    
+    if has_nutrition_image and not has_nutrition_data:
+        status = "processing"
+    elif has_ingredients_image and not has_ingredients_processed:
+        status = "processing"
+    else:
+        status = "completed"
+        
+    food.processing_status = status # type: ignore
+    
+    return schemas.FoodWithProcessingStatus(
+        **food.__dict__,
+    )
 
 @router.get("/{food_id}/nutrition-image")
 async def get_nutrition_image_url(
