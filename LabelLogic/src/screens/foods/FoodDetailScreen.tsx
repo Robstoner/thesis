@@ -147,6 +147,14 @@ export default function FoodDetailScreen({ navigation, route }: FoodDetailScreen
       }
       const foodData = await FoodService.getFoodById(foodId);
       setFood(foodData);
+
+      // Load image URLs if images exist
+      if (foodData.nutrition_image_path) {
+        loadNutritionImage();
+      }
+      if (foodData.ingredients_image_path) {
+        loadIngredientsImage();
+      }
     } catch (error: any) {
       Alert.alert('Error', error.message);
       if (!food) {

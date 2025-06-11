@@ -78,7 +78,6 @@ class FoodService {
   async getNutritionImageUrl(id: number): Promise<string> {
     try {
       const response = await axios.get(`${this.baseURL}/foods/${id}/nutrition-image`);
-      console.log('Nutrition image URL:', response.data.url);
       return response.data.url;
     } catch (error: any) {
       throw new Error(error.response?.data?.detail || 'Failed to get nutrition image');
@@ -88,7 +87,6 @@ class FoodService {
   async getIngredientsImageUrl(id: number): Promise<string> {
     try {
       const response = await axios.get(`${this.baseURL}/foods/${id}/ingredients-image`);
-      console.log('Ingredients image URL:', response.data.url);
       return response.data.url;
     } catch (error: any) {
       throw new Error(error.response?.data?.detail || 'Failed to get ingredients image');
