@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Optional
 import uuid
+import random
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
@@ -8,6 +9,7 @@ from fastapi import HTTPException, status
 from app.core.config import settings
 from app.models.user import User
 from app.models.token import Token
+from app.models.reset_code import PasswordResetCode
 from app.schemas.user import UserCreate, TokenData
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -314,3 +316,87 @@ class AuthService:
             User.is_verified == False
         ).first()
         return user
+    
+    @staticmethod
+    def create_password_reset_code(db: Session, user_id: int) -> str:
+        """Create a 6-digit password reset code"""
+        # Generate a 6-digit code
+        code = f"{random.randint(100000, 999999)}"
+        
+        # Set expiration to 15 minutes from now
+        expires_at = datetime.utcnow() + timedelta(minutes=15)
+        
+        # Invalidate any existing codes for this user
+        db.query(PasswordResetCode).filter(
+            PasswordResetCode.user_id == user_id,
+            PasswordResetCode.is_used == False
+        ).update({"is_used": True})
+        
+        # Create new reset code
+        reset_code = PasswordResetCode(
+            user_id=user_id,
+            code=code,
+            expires_at=expires_at,
+            is_used=False
+        )
+        
+        db.add(reset_code)
+        db.commit()
+        db.refresh(reset_code)
+        
+        return code
+    
+    @staticmethod
+    def verify_password_reset_code(db: Session, email: str, code: str) -> Optional[User]:
+        """Verify a password reset code and return the user if valid"""
+        # Get user by email
+        user = db.query(User).filter(User.email == email).first()
+        if not user:
+            return None
+        
+        # Find valid reset code
+        reset_code = db.query(PasswordResetCode).filter(
+            PasswordResetCode.user_id == user.id,
+            PasswordResetCode.code == code,
+            PasswordResetCode.is_used == False,
+            PasswordResetCode.expires_at > datetime.utcnow()
+        ).first()
+        
+        if not reset_code:
+            return None
+        
+        return user
+    
+    @staticmethod
+    def use_password_reset_code(db: Session, email: str, code: str) -> bool:
+        """Mark a password reset code as used"""
+        # Get user by email
+        user = db.query(User).filter(User.email == email).first()
+        if not user:
+            return False
+        
+        # Find and mark code as used
+        result = db.query(PasswordResetCode).filter(
+            PasswordResetCode.user_id == user.id,
+            PasswordResetCode.code == code,
+            PasswordResetCode.is_used == False,
+            PasswordResetCode.expires_at > datetime.utcnow()
+        ).update({
+            "is_used": True,
+            "used_at": datetime.utcnow()
+        })
+        
+        db.commit()
+        return result > 0
+    
+    @staticmethod
+    def cleanup_expired_reset_codes(db: Session) -> int:
+        """Remove expired reset codes from database (cleanup job)"""
+        try:
+            result = db.query(PasswordResetCode).filter(
+                PasswordResetCode.expires_at < datetime.utcnow()
+            ).delete()
+            db.commit()
+            return result
+        except Exception:
+            return 0

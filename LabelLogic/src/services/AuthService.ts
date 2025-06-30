@@ -1,14 +1,19 @@
 import axios from "axios";
 import * as SecureStore from "expo-secure-store";
 import { API_BASE_URL } from "../utils/config";
-import { User, LoginRequest, RegisterRequest, AuthResponse } from "../types";
+import { User, LoginRequest, RegisterRequest, AuthResponse, ForgotPasswordRequest, ResetPasswordRequest, ForgotPasswordCodeRequest, ResetPasswordCodeRequest } from "../types";
 
 class AuthService {
   private baseURL = API_BASE_URL;
   private isLoggingOut = false;
+  private onLogoutCallback: (() => void) | null = null;
 
   constructor() {
     this.setupAxiosInterceptors();
+  }
+
+  setOnLogoutCallback(callback: () => void) {
+    this.onLogoutCallback = callback;
   }
 
   private setupAxiosInterceptors() {
@@ -39,6 +44,11 @@ class AuthService {
                 `${this.baseURL}/auth/refresh`,
                 { refresh_token: refreshToken }
               );
+              console.log(response.status);
+              if (response.status !== 200) {
+                throw new Error("Failed to refresh access token");
+              }
+
               const { access_token } = response.data;
 
               if (!access_token) {
@@ -51,6 +61,7 @@ class AuthService {
               return axios(error.config);
             } catch (refreshError) {
               await this.logout();
+              this.onLogoutCallback?.();
             }
           } else {
             if (
@@ -58,6 +69,7 @@ class AuthService {
               !error.config?.url?.includes("/auth/logout")
             ) {
               await this.logout();
+              this.onLogoutCallback?.();
             }
           }
         }
@@ -138,6 +150,38 @@ class AuthService {
       return !!token;
     } catch (error) {
       return false;
+    }
+  }
+
+  async requestPasswordReset(email: ForgotPasswordRequest): Promise<void> {
+    try {
+      await axios.post(`${this.baseURL}/auth/request-password-reset`, email);
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || "Failed to request password reset");
+    }
+  }
+
+  async resetPassword(resetData: ResetPasswordRequest): Promise<void> {
+    try {
+      await axios.post(`${this.baseURL}/auth/reset-password`, resetData);
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || "Failed to reset password");
+    }
+  }
+
+  async requestPasswordResetCode(email: ForgotPasswordCodeRequest): Promise<void> {
+    try {
+      await axios.post(`${this.baseURL}/auth/request-password-reset-code`, email);
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || "Failed to request password reset code");
+    }
+  }
+
+  async resetPasswordWithCode(resetData: ResetPasswordCodeRequest): Promise<void> {
+    try {
+      await axios.post(`${this.baseURL}/auth/reset-password-with-code`, resetData);
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || "Failed to reset password with code");
     }
   }
 }

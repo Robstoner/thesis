@@ -224,10 +224,17 @@ class EmailService:
                 
                 <p>Am primit o cerere de resetare a parolei pentru contul tău.</p>
                 
-                <p>Pentru a-ți reseta parola, folosește următorul token:</p>
+                <p>Pentru a-ți reseta parola, ai două opțiuni:</p>
+                
+                <div style="background-color: #e8f5e8; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #4CAF50;">
+                    <strong>🔗 Opțiunea 1: Link Direct în Aplicație (Recomandat)</strong><br>
+                    <p>Apasă pe linkul de mai jos pentru a deschide aplicația direct:</p>
+                    <p><a href="labellogic://reset-password/{reset_token}" style="color: #4CAF50; font-weight: bold;">Resetează Parola în Aplicație</a></p>
+                </div>
                 
                 <div class="token-box">
-                    <strong>Token de resetare:</strong><br>
+                    <strong>🔑 Opțiunea 2: Token Manual</strong><br>
+                    Copiază acest token și folosește-l în aplicația LabelLogic:<br>
                     {reset_token}
                 </div>
                 
@@ -261,12 +268,16 @@ class EmailService:
 
         Am primit o cerere de resetare a parolei pentru contul tău.
 
-        Pentru a-ți reseta parola, folosește următorul token:
+        Pentru a-ți reseta parola, ai două opțiuni:
 
-        TOKEN DE RESETARE:
+        🔗 OPȚIUNEA 1: LINK DIRECT ÎN APLICAȚIE (RECOMANDAT)
+        Deschide acest link: labellogic://reset-password/{reset_token}
+
+        🔑 OPȚIUNEA 2: TOKEN MANUAL
+        Copiază acest token și folosește-l în aplicația LabelLogic:
         {reset_token}
 
-        RESETARE PRIN API:
+        📡 RESETARE PRIN API (pentru dezvoltatori):
         POST /auth/reset-password
         Body: {{"token": "{reset_token}", "new_password": "noua_parola"}}
 
@@ -292,4 +303,144 @@ class EmailService:
             return True
         except Exception as e:
             logger.error(f"Failed to send password reset email to {email}: {str(e)}")
+            return False
+
+    async def send_password_reset_code_email(self, email: str, username: str, reset_code: str):
+        """Send password reset email with 6-digit code"""
+        
+        html_body = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <title>Resetare Parolă - LabelLogic</title>
+            <style>
+                body {{
+                    font-family: Arial, sans-serif;
+                    line-height: 1.6;
+                    color: #333;
+                    max-width: 600px;
+                    margin: 0 auto;
+                    padding: 20px;
+                }}
+                .header {{
+                    background-color: #ff6b6b;
+                    color: white;
+                    padding: 20px;
+                    text-align: center;
+                    border-radius: 5px 5px 0 0;
+                }}
+                .content {{
+                    background-color: #f9f9f9;
+                    padding: 20px;
+                    border-radius: 0 0 5px 5px;
+                }}
+                .code-box {{
+                    background-color: #e8f5e8;
+                    padding: 20px;
+                    border-radius: 10px;
+                    margin: 20px 0;
+                    text-align: center;
+                    border-left: 4px solid #4CAF50;
+                }}
+                .code {{
+                    font-size: 32px;
+                    font-weight: bold;
+                    color: #2c3e50;
+                    letter-spacing: 8px;
+                    font-family: monospace;
+                    margin: 10px 0;
+                }}
+                .expiry {{
+                    background-color: #fff3cd;
+                    padding: 15px;
+                    border-radius: 5px;
+                    margin: 20px 0;
+                    border-left: 4px solid #ffc107;
+                }}
+                .footer {{
+                    margin-top: 20px;
+                    padding-top: 20px;
+                    border-top: 1px solid #ddd;
+                    color: #666;
+                    font-size: 14px;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>🥗 LabelLogic</h1>
+                <h2>Resetare Parolă</h2>
+            </div>
+            <div class="content">
+                <p>Salut <strong>{username}</strong>!</p>
+                
+                <p>Am primit o cerere de resetare a parolei pentru contul tău.</p>
+                
+                <p>Pentru a-ți reseta parola, folosește următorul cod de 6 cifre:</p>
+                
+                <div class="code-box">
+                    <p><strong>🔑 Codul tău de resetare:</strong></p>
+                    <div class="code">{reset_code}</div>
+                    <p style="margin: 0; font-size: 14px; color: #666;">Introdu acest cod în aplicația LabelLogic</p>
+                </div>
+                
+                <div class="expiry">
+                    <strong>⏰ Important:</strong> Acest cod va expira în <strong>15 minute</strong> din motive de securitate.
+                </div>
+                
+                <p><strong>🔧 Instrucțiuni pentru resetare:</strong></p>
+                <ol>
+                    <li>Deschide aplicația LabelLogic</li>
+                    <li>Navighează la secțiunea "Parolă uitată"</li>
+                    <li>Introdu email-ul tău și codul de mai sus</li>
+                    <li>Setează noua parolă</li>
+                    <li>Toate sesiunile active vor fi invalidate din motive de securitate</li>
+                </ol>
+                
+                <p>Dacă nu ai solicitat resetarea parolei, te rugăm să ignori acest email. Parola ta rămâne neschimbată.</p>
+            </div>
+        </body>
+        </html>
+        """
+
+        text_body = f"""
+        🥗 LabelLogic - Resetare Parolă
+        
+        Salut {username}!
+
+        Am primit o cerere de resetare a parolei pentru contul tău.
+
+        Pentru a-ți reseta parola, folosește următorul cod de 6 cifre:
+
+        🔑 COD DE RESETARE: {reset_code}
+
+        ⏰ IMPORTANT: 
+        - Acest cod va expira în 15 minute din motive de securitate.
+        - Toate sesiunile active vor fi invalidate.
+        - Va trebui să te autentifici din nou cu noua parolă.
+
+        INSTRUCȚIUNI:
+        1. Deschide aplicația LabelLogic
+        2. Navighează la "Parolă uitată"  
+        3. Introdu email-ul și codul de mai sus
+        4. Setează noua parolă
+
+        Dacă nu ai solicitat resetarea parolei, te rugăm să ignori acest email.
+        """
+
+        message = MessageSchema(
+            subject="🔒 Cod Resetare Parolă - LabelLogic",
+            recipients=[email],
+            alternative_body=text_body,
+            template_body=html_body,
+            subtype=MessageType.html
+        )
+
+        try:
+            await self.fastmail.send_message(message)
+            logger.info(f"Password reset code email sent successfully to {email}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to send password reset code email to {email}: {str(e)}")
             return False

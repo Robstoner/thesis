@@ -4,10 +4,14 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { useAuth } from '../context/AuthContext';
 import { RootStackParamList } from '../types/navigation';
+import * as Linking from 'expo-linking';
 
 // Auth Screens
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
+import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
+import CodeVerificationScreen from '../screens/auth/CodeVerificationScreen';
+import ResetPasswordScreen from '../screens/auth/ResetPasswordScreen';
 
 // Food Screens
 import FoodListScreen from '../screens/foods/FoodListScreen';
@@ -21,6 +25,9 @@ function AuthStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
+      <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+      <Stack.Screen name="CodeVerification" component={CodeVerificationScreen} />
+      <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
     </Stack.Navigator>
   );
 }
@@ -46,12 +53,30 @@ function LoadingScreen() {
 export default function AppNavigator() {
   const { isAuthenticated, loading } = useAuth();
 
+  const linking = {
+    prefixes: [Linking.createURL('/'), 'labellogic://'],
+    config: {
+      screens: {
+        Auth: 'auth',
+        Main: 'main',
+        Login: 'login',
+        Register: 'register',
+        ForgotPassword: 'forgot-password',
+        CodeVerification: 'code-verification',
+        ResetPassword: 'reset-password/:token',
+        FoodList: 'foods',
+        AddFood: 'add-food',
+        FoodDetail: 'food/:foodId',
+      } as const,
+    },
+  };
+
   if (loading) {
     return <LoadingScreen />;
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {isAuthenticated ? (
           <Stack.Screen name="Main" component={MainStack} />

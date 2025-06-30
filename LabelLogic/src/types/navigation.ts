@@ -6,6 +6,9 @@ export type RootStackParamList = {
   // Auth Stack
   Login: undefined;
   Register: undefined;
+  ForgotPassword: undefined;
+  CodeVerification: { email: string };
+  ResetPassword: { token: string };
   
   // Main Stack
   FoodList: undefined;

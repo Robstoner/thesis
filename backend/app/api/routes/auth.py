@@ -2,7 +2,7 @@ from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.schemas.user import UserCreate, User as UserSchema, UserLogin, UserRegisterResponse, PasswordResetRequest, PasswordResetConfirm, EmailVerificationRequest
+from app.schemas.user import UserCreate, User as UserSchema, UserLogin, UserRegisterResponse, PasswordResetRequest, PasswordResetConfirm, EmailVerificationRequest, PasswordResetCodeRequest, PasswordResetCodeConfirm
 from app.services.auth_service import AuthService
 from app.services.email_service import EmailService
 from app.api.dependencies import get_current_user
@@ -198,6 +198,68 @@ async def reset_password(
         "message": "Parola a fost resetată cu succes. Te rugăm să te autentifici cu noua parolă."
     }
 
+@router.post("/request-password-reset-code")
+async def request_password_reset_code(
+    request: PasswordResetCodeRequest, 
+    db: Session = Depends(get_db)
+):
+    """Request password reset with 6-digit code"""
+    
+    # Check if user exists
+    user = AuthService.get_user_by_email(db, request.email)
+    if not user:
+        # Don't reveal if email exists or not for security
+        return {
+            "message": "Dacă email-ul este înregistrat, un cod de resetare a fost trimis."
+        }
+    
+    # Create 6-digit reset code
+    reset_code = AuthService.create_password_reset_code(db, user.id)
+    
+    # Send password reset email with code
+    email_sent = await email_service.send_password_reset_code_email(
+        email=str(user.email),
+        username=str(user.username),
+        reset_code=reset_code
+    )
+    
+    return {
+        "message": "Dacă email-ul este înregistrat, un cod de resetare a fost trimis."
+    }
+
+@router.post("/reset-password-with-code")
+async def reset_password_with_code(
+    request: PasswordResetCodeConfirm, 
+    db: Session = Depends(get_db)
+):
+    """Reset password using 6-digit code"""
+    
+    # Verify the code
+    user = AuthService.verify_password_reset_code(db, request.email, request.code)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cod invalid sau expirat"
+        )
+    
+    # Update password
+    success = AuthService.update_user_password(db, user.id, request.new_password) # type: ignore
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Eroare la resetarea parolei"
+        )
+    
+    # Mark code as used
+    AuthService.use_password_reset_code(db, request.email, request.code)
+    
+    # Revoke all user tokens for security
+    AuthService.revoke_all_user_tokens(db, user.id, "password_reset") # type: ignore
+    
+    return {
+        "message": "Parola a fost resetată cu succes. Te rugăm să te autentifici cu noua parolă."
+    }
+
 @router.post("/login")
 async def login(
     response: Response,
@@ -271,7 +333,6 @@ async def login(
 async def logout(
     request: Request, 
     response: Response, 
-    current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Simple logout that revokes current tokens"""
@@ -305,7 +366,6 @@ async def logout(
 async def logout_all_devices(
     request: Request,
     response: Response,
-    current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Logout from all devices by revoking ALL user tokens"""

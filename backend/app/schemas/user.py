@@ -44,6 +44,28 @@ class PasswordResetConfirm(BaseModel):
             raise ValueError('Parola trebuie să aibă cel puțin 6 caractere')
         return v
 
+class PasswordResetCodeRequest(BaseModel):
+    email: EmailStr
+
+class PasswordResetCodeConfirm(BaseModel):
+    email: EmailStr
+    code: str
+    new_password: str
+    
+    @field_validator('new_password')
+    @classmethod
+    def validate_password(cls, v):
+        if len(v) < 6:
+            raise ValueError('Parola trebuie să aibă cel puțin 6 caractere')
+        return v
+    
+    @field_validator('code')
+    @classmethod
+    def validate_code(cls, v):
+        if len(v) != 6 or not v.isdigit():
+            raise ValueError('Codul trebuie să fie format din 6 cifre')
+        return v
+
 class User(UserBase):
     id: int
     is_active: bool

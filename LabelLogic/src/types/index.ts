@@ -64,3 +64,22 @@ export interface AuthResponse {
   refresh_token: string;
   user: User;
 }
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  new_password: string;
+}
+
+export interface ForgotPasswordCodeRequest {
+  email: string;
+}
+
+export interface ResetPasswordCodeRequest {
+  email: string;
+  code: string;
+  new_password: string;
+}

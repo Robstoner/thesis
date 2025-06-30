@@ -31,6 +31,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     checkAuthStatus();
+    
+    // Set up logout callback for AuthService interceptor
+    AuthService.setOnLogoutCallback(() => {
+      setIsAuthenticated(false);
+      setUser(null);
+    });
   }, []);
 
   const checkAuthStatus = async () => {

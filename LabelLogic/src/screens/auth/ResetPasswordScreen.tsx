@@ -11,28 +11,54 @@ import {
   ScrollView,
 } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
+import AuthService from '../../services/AuthService';
 
-interface LoginScreenProps {
+interface ResetPasswordScreenProps {
   navigation: any;
+  route: {
+    params: {
+      token: string;
+    };
+  };
 }
 
-export default function LoginScreen({ navigation }: LoginScreenProps) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+export default function ResetPasswordScreen({ navigation, route }: ResetPasswordScreenProps) {
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { token } = route.params;
 
-  const handleLogin = async () => {
-    if (!email || !password) {
+  const handleResetPassword = async () => {
+    if (!newPassword || !confirmPassword) {
       Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      Alert.alert('Error', 'Password must be at least 8 characters long');
       return;
     }
 
     setLoading(true);
     try {
-      await login(email, password);
+      await AuthService.resetPassword({ token, new_password: newPassword });
+      Alert.alert(
+        'Success', 
+        'Your password has been reset successfully. Please log in with your new password.',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.navigate('Login'),
+          },
+        ]
+      );
     } catch (error: any) {
-      Alert.alert('Login Failed', error.message);
+      Alert.alert('Error', error.message);
     }
     setLoading(false);
   };
@@ -48,50 +74,45 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.content}>
-        <Text style={styles.title}>LabelLogic</Text>
-        <Text style={styles.subtitle}>Welcome back!</Text>
+        <Text style={styles.title}>Reset Password</Text>
+        <Text style={styles.subtitle}>
+          Enter your new password below.
+        </Text>
 
         <TextInput
           style={styles.input}
-          placeholder="Email"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
+          placeholder="New Password"
+          value={newPassword}
+          onChangeText={setNewPassword}
+          secureTextEntry
           autoCapitalize="none"
-          autoCorrect={false}
         />
 
         <TextInput
           style={styles.input}
-          placeholder="Password"
-          value={password}
-          onChangeText={setPassword}
+          placeholder="Confirm New Password"
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
           secureTextEntry
+          autoCapitalize="none"
         />
 
         <TouchableOpacity 
           style={[styles.button, loading && styles.buttonDisabled]} 
-          onPress={handleLogin}
+          onPress={handleResetPassword}
           disabled={loading}
         >
           <Text style={styles.buttonText}>
-            {loading ? 'Logging in...' : 'Login'}
+            {loading ? 'Resetting...' : 'Reset Password'}
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity 
-          style={styles.forgotPasswordButton}
-          onPress={() => navigation.navigate('ForgotPassword')}
+          style={styles.backButton}
+          onPress={() => navigation.navigate('Login')}
         >
-          <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+          <Text style={styles.backButtonText}>Back to Login</Text>
         </TouchableOpacity>
-
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Don't have an account? </Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-            <Text style={styles.linkText}>Sign up</Text>
-          </TouchableOpacity>
-        </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -124,6 +145,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 40,
     color: '#7f8c8d',
+    paddingHorizontal: 20,
+    lineHeight: 22,
   },
   input: {
     backgroundColor: 'white',
@@ -149,23 +172,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+  backButton: {
     marginTop: 24,
+    padding: 16,
   },
-  footerText: {
-    color: '#7f8c8d',
-  },
-  linkText: {
-    color: '#27ae60',
-    fontWeight: '600',
-  },
-  forgotPasswordButton: {
-    marginTop: 16,
-    padding: 8,
-  },
-  forgotPasswordText: {
+  backButtonText: {
     color: '#27ae60',
     textAlign: 'center',
     fontSize: 16,

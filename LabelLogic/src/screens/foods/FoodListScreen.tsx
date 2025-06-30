@@ -118,7 +118,7 @@ export default function FoodListScreen({ navigation }: FoodListScreenProps) {
 
         {item.processing_status === "error" && (
           <View style={styles.errorBadge}>
-            <Text style={styles.errorBadgeText}>⚠️ Analysis failed</Text>
+            <Text style={styles.errorBadgeText}>Analysis failed</Text>
           </View>
         )}
       </View>
@@ -220,7 +220,7 @@ export default function FoodListScreen({ navigation }: FoodListScreenProps) {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Text style={styles.title}>My Foods</Text>
-          <Text style={styles.userText}>Hello, {user?.username}!</Text>
+          <Text style={styles.userText}>Hello, {user?.username || 'User'}!</Text>
         </View>
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Text style={styles.logoutText}>Logout</Text>
@@ -230,7 +230,7 @@ export default function FoodListScreen({ navigation }: FoodListScreenProps) {
       <FlatList
         data={foods}
         renderItem={renderFood}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => `food-${item.id}`}
         ListEmptyComponent={renderEmpty}
         ListFooterComponent={renderFooter}
         contentContainerStyle={
@@ -240,10 +240,8 @@ export default function FoodListScreen({ navigation }: FoodListScreenProps) {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={["#27ae60"]} // Android
-            tintColor={"#27ae60"} // iOS
-            title="Pull to refresh" // iOS
-            titleColor={"#27ae60"} // iOS
+            colors={["#27ae60"]}
+            tintColor="#27ae60"
           />
         }
         onEndReached={loadMoreFoods}

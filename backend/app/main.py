@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine
 from app.models import food as food_models
 from app.models import user as user_models
+from app.models import reset_code as reset_code_models
 from app.api.routes import food, auth
 from app.startup import initialize_storage
 import uvicorn
@@ -15,6 +16,7 @@ logger = logging.getLogger(__name__)
 # Create database tables
 food_models.Base.metadata.create_all(bind=engine)
 user_models.Base.metadata.create_all(bind=engine)
+reset_code_models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="LabelLogic API",
