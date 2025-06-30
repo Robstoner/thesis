@@ -83,3 +83,29 @@ export interface ResetPasswordCodeRequest {
   code: string;
   new_password: string;
 }
+
+export interface FoodFilters {
+  search?: string;
+  sort_by?: 'name' | 'brand' | 'created_at' | 'calories_per_100g' | 'processing_score';
+  sort_order?: 'asc' | 'desc';
+  min_protein?: number;
+  max_calories?: number;
+  max_sodium?: number;
+  max_processing_score?: number;
+  has_ingredients?: boolean;
+  page?: number;
+  page_size?: number;
+}
+
+export interface RankingCriteria {
+  criteria: 'processing_score' | 'protein_per_100g' | 'calories_per_100g' | 'sodium_per_100g' | 'fat_per_100g' | 'fiber_per_100g' | 'sugar_per_100g';
+  ascending: boolean;
+}
+
+export interface FoodStats {
+  total_foods: number;
+  avg_calories_per_100g: number;
+  avg_protein_per_100g: number;
+  processing_score_distribution: { [key: string]: number };
+  top_healthiest_foods: Food[];
+}

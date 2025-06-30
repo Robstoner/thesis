@@ -5,12 +5,20 @@ import { Food, FoodListResponse } from '../types';
 class FoodService {
   private baseURL = API_BASE_URL;
 
-  async getFoods(page = 1, pageSize = 20, search?: string): Promise<FoodListResponse> {
+  async getFoods(
+    page = 1, 
+    pageSize = 20, 
+    search?: string,
+    sortBy?: string,
+    sortOrder = 'desc'
+  ): Promise<FoodListResponse> {
     try {
       const params = new URLSearchParams({
         page: page.toString(),
         page_size: pageSize.toString(),
         ...(search && { search }),
+        ...(sortBy && { sort_by: sortBy }),
+        sort_order: sortOrder,
       });
 
       const response = await axios.get(`${this.baseURL}/foods/?${params}`);
@@ -103,6 +111,42 @@ class FoodService {
 
   async searchFoods(query: string, page = 1, pageSize = 20): Promise<FoodListResponse> {
     return this.getFoods(page, pageSize, query);
+  }
+
+  async getFoodsByRanking(
+    criteria = 'processing_score',
+    ascending = true,
+    page = 1,
+    pageSize = 20
+  ): Promise<FoodListResponse> {
+    try {
+      const params = new URLSearchParams({
+        criteria,
+        ascending: ascending.toString(),
+        page: page.toString(),
+        page_size: pageSize.toString(),
+      });
+
+      const response = await axios.get(`${this.baseURL}/foods/ranking/by-criteria?${params}`);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Failed to get ranked foods');
+    }
+  }
+
+  async getFoodStats(): Promise<{
+    total_foods: number;
+    avg_calories_per_100g: number;
+    avg_protein_per_100g: number;
+    processing_score_distribution: { [key: string]: number };
+    top_healthiest_foods: Food[];
+  }> {
+    try {
+      const response = await axios.get(`${this.baseURL}/foods/stats/summary`);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Failed to get food statistics');
+    }
   }
 
   async getFilteredFoods(filters: {
