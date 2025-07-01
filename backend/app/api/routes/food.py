@@ -512,6 +512,15 @@ async def update_food(
     name: Optional[str] = Form(None),
     brand: Optional[str] = Form(None),
     ingredients_text: Optional[str] = Form(None),
+    # Manual nutrition value updates
+    calories_per_100g: Optional[float] = Form(None),
+    protein_per_100g: Optional[float] = Form(None),
+    carbs_per_100g: Optional[float] = Form(None),
+    fat_per_100g: Optional[float] = Form(None),
+    saturated_fat_per_100g: Optional[float] = Form(None),
+    fiber_per_100g: Optional[float] = Form(None),
+    sugar_per_100g: Optional[float] = Form(None),
+    sodium_per_100g: Optional[float] = Form(None),
     nutrition_image: UploadFile = File(None),
     ingredients_image: UploadFile = File(None),
     current_user: User = Depends(get_current_user),
@@ -531,6 +540,24 @@ async def update_food(
         update_data["name"] = name
     if brand is not None:
         update_data["brand"] = brand
+    
+    # Handle manual nutrition value updates
+    if calories_per_100g is not None:
+        update_data["calories_per_100g"] = calories_per_100g
+    if protein_per_100g is not None:
+        update_data["protein_per_100g"] = protein_per_100g
+    if carbs_per_100g is not None:
+        update_data["carbs_per_100g"] = carbs_per_100g
+    if fat_per_100g is not None:
+        update_data["fat_per_100g"] = fat_per_100g
+    if saturated_fat_per_100g is not None:
+        update_data["saturated_fat_per_100g"] = saturated_fat_per_100g
+    if fiber_per_100g is not None:
+        update_data["fiber_per_100g"] = fiber_per_100g
+    if sugar_per_100g is not None:
+        update_data["sugar_per_100g"] = sugar_per_100g
+    if sodium_per_100g is not None:
+        update_data["sodium_per_100g"] = sodium_per_100g
     
     # Handle nutrition image update
     if nutrition_image:

@@ -10,7 +10,9 @@ import {
   Image,
   Dimensions,
   RefreshControl,
+  TextInput,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { Food } from '../../types';
 import FoodService from '../../services/FoodService';
 import { StackScreenProps } from '@react-navigation/stack';
@@ -107,6 +109,22 @@ export default function FoodDetailScreen({ navigation, route }: FoodDetailScreen
   const [loading, setLoading] = useState(true);
   const [imageLoading, setImageLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedName, setEditedName] = useState('');
+  const [editedBrand, setEditedBrand] = useState('');
+  const [newNutritionImage, setNewNutritionImage] = useState<string | null>(null);
+  const [newIngredientsImage, setNewIngredientsImage] = useState<string | null>(null);
+  const [updating, setUpdating] = useState(false);
+  const [editedNutrition, setEditedNutrition] = useState({
+    calories_per_100g: '',
+    protein_per_100g: '',
+    carbs_per_100g: '',
+    fat_per_100g: '',
+    saturated_fat_per_100g: '',
+    fiber_per_100g: '',
+    sugar_per_100g: '',
+    sodium_per_100g: '',
+  });
   
   const {
     status,
@@ -147,6 +165,20 @@ export default function FoodDetailScreen({ navigation, route }: FoodDetailScreen
       }
       const foodData = await FoodService.getFoodById(foodId);
       setFood(foodData);
+      setEditedName(foodData.name);
+      setEditedBrand(foodData.brand || '');
+      
+      // Initialize nutrition values
+      setEditedNutrition({
+        calories_per_100g: foodData.calories_per_100g?.toString() || '',
+        protein_per_100g: foodData.protein_per_100g?.toString() || '',
+        carbs_per_100g: foodData.carbs_per_100g?.toString() || '',
+        fat_per_100g: foodData.fat_per_100g?.toString() || '',
+        saturated_fat_per_100g: foodData.saturated_fat_per_100g?.toString() || '',
+        fiber_per_100g: foodData.fiber_per_100g?.toString() || '',
+        sugar_per_100g: foodData.sugar_per_100g?.toString() || '',
+        sodium_per_100g: foodData.sodium_per_100g?.toString() || '',
+      });
 
       // Load image URLs if images exist
       if (foodData.nutrition_image_path) {
@@ -183,6 +215,191 @@ export default function FoodDetailScreen({ navigation, route }: FoodDetailScreen
       setIngredientsImageUrl(url);
     } catch (error) {
       console.log('Failed to load ingredients image:', error);
+    }
+  };
+
+  const handleStartEdit = () => {
+    setIsEditing(true);
+    setEditedName(food?.name || '');
+    setEditedBrand(food?.brand || '');
+    setNewNutritionImage(null);
+    setNewIngredientsImage(null);
+    
+    // Reset nutrition values to current food data
+    if (food) {
+      setEditedNutrition({
+        calories_per_100g: food.calories_per_100g?.toString() || '',
+        protein_per_100g: food.protein_per_100g?.toString() || '',
+        carbs_per_100g: food.carbs_per_100g?.toString() || '',
+        fat_per_100g: food.fat_per_100g?.toString() || '',
+        saturated_fat_per_100g: food.saturated_fat_per_100g?.toString() || '',
+        fiber_per_100g: food.fiber_per_100g?.toString() || '',
+        sugar_per_100g: food.sugar_per_100g?.toString() || '',
+        sodium_per_100g: food.sodium_per_100g?.toString() || '',
+      });
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditedName(food?.name || '');
+    setEditedBrand(food?.brand || '');
+    setNewNutritionImage(null);
+    setNewIngredientsImage(null);
+    
+    // Reset nutrition values
+    if (food) {
+      setEditedNutrition({
+        calories_per_100g: food.calories_per_100g?.toString() || '',
+        protein_per_100g: food.protein_per_100g?.toString() || '',
+        carbs_per_100g: food.carbs_per_100g?.toString() || '',
+        fat_per_100g: food.fat_per_100g?.toString() || '',
+        saturated_fat_per_100g: food.saturated_fat_per_100g?.toString() || '',
+        fiber_per_100g: food.fiber_per_100g?.toString() || '',
+        sugar_per_100g: food.sugar_per_100g?.toString() || '',
+        sodium_per_100g: food.sodium_per_100g?.toString() || '',
+      });
+    }
+  };
+
+  const handleImagePicker = async (type: 'nutrition' | 'ingredients') => {
+    Alert.alert(
+      'Select Image',
+      'Choose how you want to add an image',
+      [
+        {
+          text: 'Take Photo',
+          onPress: () => openCamera(type),
+        },
+        {
+          text: 'Choose from Gallery',
+          onPress: () => openGallery(type),
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+      ]
+    );
+  };
+
+  const openCamera = async (type: 'nutrition' | 'ingredients') => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission required', 'Please grant camera permissions to take photos.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        if (type === 'nutrition') {
+          setNewNutritionImage(result.assets[0].uri);
+        } else {
+          setNewIngredientsImage(result.assets[0].uri);
+        }
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to take photo');
+    }
+  };
+
+  const openGallery = async (type: 'nutrition' | 'ingredients') => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission required', 'Please grant photo library permissions to select images.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        if (type === 'nutrition') {
+          setNewNutritionImage(result.assets[0].uri);
+        } else {
+          setNewIngredientsImage(result.assets[0].uri);
+        }
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to select image');
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editedName.trim()) {
+      Alert.alert('Error', 'Food name is required');
+      return;
+    }
+
+    setUpdating(true);
+    try {
+      const formData = new FormData();
+      
+      // Add text fields
+      formData.append('name', editedName.trim());
+      if (editedBrand.trim()) {
+        formData.append('brand', editedBrand.trim());
+      }
+      
+      // Add nutrition fields if they have values
+      Object.entries(editedNutrition).forEach(([key, value]) => {
+        if (value.trim()) {
+          const numValue = parseFloat(value.trim());
+          if (!isNaN(numValue) && numValue >= 0) {
+            formData.append(key, numValue.toString());
+          }
+        }
+      });
+
+      // Add image files if new ones were selected
+      if (newNutritionImage) {
+        formData.append('nutrition_image', {
+          uri: newNutritionImage,
+          type: 'image/jpeg',
+          name: 'nutrition.jpg',
+        } as any);
+      }
+
+      if (newIngredientsImage) {
+        formData.append('ingredients_image', {
+          uri: newIngredientsImage,
+          type: 'image/jpeg',
+          name: 'ingredients.jpg',
+        } as any);
+      }
+
+      const updatedFood = await FoodService.updateFood(foodId, formData);
+      setFood(updatedFood);
+      
+      // Reload images if they were updated
+      if (newNutritionImage && updatedFood.nutrition_image_path) {
+        await loadNutritionImage();
+      }
+      if (newIngredientsImage && updatedFood.ingredients_image_path) {
+        await loadIngredientsImage();
+      }
+
+      setIsEditing(false);
+      setNewNutritionImage(null);
+      setNewIngredientsImage(null);
+      
+      Alert.alert('Success', 'Food updated successfully');
+    } catch (error: any) {
+      Alert.alert('Error', error.message);
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -254,6 +471,46 @@ export default function FoodDetailScreen({ navigation, route }: FoodDetailScreen
     );
   };
 
+  const renderEditableNutritionInfo = () => {
+    const nutritionFields = [
+      { key: 'calories_per_100g', label: 'Calories', unit: 'kcal', placeholder: '0' },
+      { key: 'protein_per_100g', label: 'Protein', unit: 'g', placeholder: '0.0' },
+      { key: 'carbs_per_100g', label: 'Carbohydrates', unit: 'g', placeholder: '0.0' },
+      { key: 'fat_per_100g', label: 'Fat', unit: 'g', placeholder: '0.0' },
+      { key: 'saturated_fat_per_100g', label: 'Saturated Fat', unit: 'g', placeholder: '0.0' },
+      { key: 'fiber_per_100g', label: 'Fiber', unit: 'g', placeholder: '0.0' },
+      { key: 'sugar_per_100g', label: 'Sugar', unit: 'g', placeholder: '0.0' },
+      { key: 'sodium_per_100g', label: 'Sodium', unit: 'mg', placeholder: '0' },
+    ];
+
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Nutrition Information (per 100g)</Text>
+        <Text style={styles.editSubtitle}>Edit values extracted by AI or leave blank to keep current</Text>
+        <View style={styles.nutritionEditGrid}>
+          {nutritionFields.map((field) => (
+            <View key={field.key} style={styles.nutritionEditItem}>
+              <Text style={styles.nutritionEditLabel}>{field.label}</Text>
+              <View style={styles.nutritionInputContainer}>
+                <TextInput
+                  style={styles.nutritionInput}
+                  value={editedNutrition[field.key as keyof typeof editedNutrition]}
+                  onChangeText={(text) => setEditedNutrition(prev => ({
+                    ...prev,
+                    [field.key]: text
+                  }))}
+                  placeholder={field.placeholder}
+                  keyboardType="numeric"
+                />
+                <Text style={styles.nutritionUnit}>{field.unit}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      </View>
+    );
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -281,12 +538,42 @@ export default function FoodDetailScreen({ navigation, route }: FoodDetailScreen
           <Text style={styles.backText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Food Details</Text>
-        <TouchableOpacity 
-          style={styles.deleteButton} 
-          onPress={handleDelete}
-        >
-          <Text style={styles.deleteText}>Delete</Text>
-        </TouchableOpacity>
+        <View style={styles.headerButtons}>
+          {isEditing ? (
+            <>
+              <TouchableOpacity 
+                style={styles.cancelButton} 
+                onPress={handleCancelEdit}
+              >
+                <Text style={styles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.saveButton, updating && styles.buttonDisabled]} 
+                onPress={handleSaveEdit}
+                disabled={updating}
+              >
+                <Text style={styles.saveText}>
+                  {updating ? 'Saving...' : 'Save'}
+                </Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <TouchableOpacity 
+                style={styles.editButton} 
+                onPress={handleStartEdit}
+              >
+                <Text style={styles.editText}>Edit</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.deleteButton} 
+                onPress={handleDelete}
+              >
+                <Text style={styles.deleteText}>Delete</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
       </View>
 
       <ScrollView 
@@ -295,10 +582,8 @@ export default function FoodDetailScreen({ navigation, route }: FoodDetailScreen
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={['#27ae60']} // Android
-            tintColor={'#27ae60'} // iOS
-            title="Pull to refresh" // iOS
-            titleColor={'#27ae60'} // iOS
+            colors={['#27ae60']}
+            tintColor="#27ae60"
           />
         }
         showsVerticalScrollIndicator={false}
@@ -344,8 +629,29 @@ export default function FoodDetailScreen({ navigation, route }: FoodDetailScreen
 
         {/* Basic Information */}
         <View style={styles.section}>
-          <Text style={styles.foodName}>{food.name}</Text>
-          {food.brand && <Text style={styles.foodBrand}>{food.brand}</Text>}
+          {isEditing ? (
+            <>
+              <Text style={styles.editLabel}>Food Name</Text>
+              <TextInput
+                style={styles.editInput}
+                value={editedName}
+                onChangeText={setEditedName}
+                placeholder="Enter food name"
+              />
+              <Text style={styles.editLabel}>Brand (Optional)</Text>
+              <TextInput
+                style={styles.editInput}
+                value={editedBrand}
+                onChangeText={setEditedBrand}
+                placeholder="Enter brand name"
+              />
+            </>
+          ) : (
+            <>
+              <Text style={styles.foodName}>{food.name}</Text>
+              {food.brand && <Text style={styles.foodBrand}>{food.brand}</Text>}
+            </>
+          )}
           
           {food.processing_score && (
             <View style={styles.processingContainer}>
@@ -363,15 +669,38 @@ export default function FoodDetailScreen({ navigation, route }: FoodDetailScreen
         </View>
 
         {/* Nutrition Image */}
-        {food.nutrition_image_path && (
+        {(food.nutrition_image_path || newNutritionImage || isEditing) && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Nutrition Label</Text>
-            {nutritionImageUrl ? (
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Nutrition Label</Text>
+              {isEditing && (
+                <TouchableOpacity 
+                  style={styles.imageEditButton}
+                  onPress={() => handleImagePicker('nutrition')}
+                >
+                  <Text style={styles.imageEditText}>Change Image</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            {newNutritionImage ? (
+              <Image 
+                source={{ uri: newNutritionImage }} 
+                style={styles.image}
+                resizeMode="contain"
+              />
+            ) : nutritionImageUrl ? (
               <Image 
                 source={{ uri: nutritionImageUrl }} 
                 style={styles.image}
                 resizeMode="contain"
               />
+            ) : isEditing ? (
+              <TouchableOpacity 
+                style={styles.imageUploadPlaceholder}
+                onPress={() => handleImagePicker('nutrition')}
+              >
+                <Text style={styles.imageUploadText}>+ Add Nutrition Image</Text>
+              </TouchableOpacity>
             ) : (
               <View style={styles.imagePlaceholder}>
                 {imageLoading ? (
@@ -385,18 +714,41 @@ export default function FoodDetailScreen({ navigation, route }: FoodDetailScreen
         )}
 
         {/* Nutrition Information */}
-        {renderNutritionInfo()}
+        {isEditing ? renderEditableNutritionInfo() : renderNutritionInfo()}
 
         {/* Ingredients Image */}
-        {food.ingredients_image_path && (
+        {(food.ingredients_image_path || newIngredientsImage || isEditing) && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Ingredients Photo</Text>
-            {ingredientsImageUrl ? (
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Ingredients Photo</Text>
+              {isEditing && (
+                <TouchableOpacity 
+                  style={styles.imageEditButton}
+                  onPress={() => handleImagePicker('ingredients')}
+                >
+                  <Text style={styles.imageEditText}>Change Image</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            {newIngredientsImage ? (
+              <Image 
+                source={{ uri: newIngredientsImage }} 
+                style={styles.image}
+                resizeMode="contain"
+              />
+            ) : ingredientsImageUrl ? (
               <Image 
                 source={{ uri: ingredientsImageUrl }} 
                 style={styles.image}
                 resizeMode="contain"
               />
+            ) : isEditing ? (
+              <TouchableOpacity 
+                style={styles.imageUploadPlaceholder}
+                onPress={() => handleImagePicker('ingredients')}
+              >
+                <Text style={styles.imageUploadText}>+ Add Ingredients Image</Text>
+              </TouchableOpacity>
             ) : (
               <View style={styles.imagePlaceholder}>
                 <ActivityIndicator color="#27ae60" />
@@ -837,6 +1189,132 @@ const styles = StyleSheet.create({
   },
   bottomPadding: {
     height: 40,
+  },
+  // Edit mode styles
+  headerButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  editButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#27ae60',
+    borderRadius: 6,
+  },
+  editText: {
+    color: 'white',
+    fontWeight: '600',
+  },
+  cancelButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#6c757d',
+    borderRadius: 6,
+  },
+  cancelText: {
+    color: 'white',
+    fontWeight: '600',
+  },
+  saveButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#27ae60',
+    borderRadius: 6,
+  },
+  saveText: {
+    color: 'white',
+    fontWeight: '600',
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+  editLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2c3e50',
+    marginBottom: 8,
+    marginTop: 12,
+  },
+  editInput: {
+    backgroundColor: '#f8f9fa',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  imageEditButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: '#007bff',
+    borderRadius: 4,
+  },
+  imageEditText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  imageUploadPlaceholder: {
+    width: width - 64,
+    height: 200,
+    borderRadius: 8,
+    backgroundColor: '#f8f9fa',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#27ae60',
+    borderStyle: 'dashed',
+  },
+  imageUploadText: {
+    color: '#27ae60',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  // Nutrition editing styles
+  editSubtitle: {
+    fontSize: 14,
+    color: '#6c757d',
+    marginBottom: 16,
+    fontStyle: 'italic',
+  },
+  nutritionEditGrid: {
+    gap: 12,
+  },
+  nutritionEditItem: {
+    marginBottom: 12,
+  },
+  nutritionEditLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2c3e50',
+    marginBottom: 6,
+  },
+  nutritionInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+  },
+  nutritionInput: {
+    flex: 1,
+    padding: 12,
+    fontSize: 16,
+  },
+  nutritionUnit: {
+    fontSize: 14,
+    color: '#6c757d',
+    fontWeight: '500',
+    marginLeft: 8,
   },
   ...additionalStyles
 });

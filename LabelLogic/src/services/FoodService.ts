@@ -101,6 +101,19 @@ class FoodService {
     }
   }
 
+  async updateFood(id: number, formData: FormData): Promise<Food> {
+    try {
+      const response = await axios.put(`${this.baseURL}/foods/${id}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Failed to update food');
+    }
+  }
+
   async deleteFood(id: number): Promise<void> {
     try {
       await axios.delete(`${this.baseURL}/foods/${id}`);
