@@ -32,7 +32,8 @@ export default function FoodListScreen({ navigation }: FoodListScreenProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<FoodFilters>({
     sort_by: 'created_at',
-    sort_order: 'desc'
+    sort_order: 'desc',
+    show_all_users: false
   });
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
@@ -96,7 +97,8 @@ export default function FoodListScreen({ navigation }: FoodListScreenProps) {
           20, 
           searchQuery,
           currentFilters.sort_by,
-          currentFilters.sort_order
+          currentFilters.sort_order,
+          currentFilters.show_all_users
         );
       }
 
@@ -132,7 +134,8 @@ export default function FoodListScreen({ navigation }: FoodListScreenProps) {
   const clearFilters = () => {
     setFilters({
       sort_by: 'created_at',
-      sort_order: 'desc'
+      sort_order: 'desc',
+      show_all_users: false
     });
     setSearchQuery('');
     setPage(1);
@@ -316,7 +319,7 @@ export default function FoodListScreen({ navigation }: FoodListScreenProps) {
               styles.filterButtonText,
               showFilters && { color: 'white' }
             ]}>
-              Filter {(filters.min_protein || filters.max_calories || filters.max_sodium || filters.max_processing_score || searchQuery) && '•'}
+              Filter {(filters.min_protein || filters.max_calories || filters.max_sodium || filters.max_processing_score || filters.show_all_users || searchQuery) && '•'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -338,6 +341,15 @@ export default function FoodListScreen({ navigation }: FoodListScreenProps) {
                 </Text>
               </TouchableOpacity>
             </View>
+            <TouchableOpacity 
+              style={styles.checkboxRow}
+              onPress={() => setFilters({ ...filters, show_all_users: !filters.show_all_users })}
+            >
+              <View style={[styles.checkbox, filters.show_all_users && styles.checkboxChecked]}>
+                {filters.show_all_users && <Text style={styles.checkmark}>✓</Text>}
+              </View>
+              <Text style={styles.checkboxLabel}>Show foods from all users</Text>
+            </TouchableOpacity>
             <View style={styles.filterActions}>
               <TouchableOpacity style={styles.clearButton} onPress={clearFilters}>
                 <Text style={styles.clearButtonText}>Clear</Text>
@@ -825,6 +837,36 @@ const styles = StyleSheet.create({
   clearButtonText: {
     color: "#e74c3c",
     fontWeight: "600",
+  },
+  checkboxRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: "#ddd",
+    borderRadius: 4,
+    marginRight: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f8f9fa",
+  },
+  checkboxChecked: {
+    backgroundColor: "#27ae60",
+    borderColor: "#27ae60",
+  },
+  checkmark: {
+    color: "white",
+    fontSize: 14,
+    fontWeight: "bold",
+  },
+  checkboxLabel: {
+    fontSize: 16,
+    color: "#2c3e50",
+    fontWeight: "500",
   },
   // Modal Styles
   modalContainer: {

@@ -10,7 +10,8 @@ class FoodService {
     pageSize = 20, 
     search?: string,
     sortBy?: string,
-    sortOrder = 'desc'
+    sortOrder = 'desc',
+    showAllUsers = false
   ): Promise<FoodListResponse> {
     try {
       const params = new URLSearchParams({
@@ -21,7 +22,8 @@ class FoodService {
         sort_order: sortOrder,
       });
 
-      const response = await axios.get(`${this.baseURL}/foods/?${params}`);
+      const endpoint = showAllUsers ? '/foods/all' : '/foods/';
+      const response = await axios.get(`${this.baseURL}${endpoint}?${params}`);
       return response.data;
     } catch (error: any) {
       throw new Error(error.response?.data?.detail || 'Failed to fetch foods');

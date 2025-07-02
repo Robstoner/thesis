@@ -93,6 +93,7 @@ export interface FoodFilters {
   max_sodium?: number;
   max_processing_score?: number;
   has_ingredients?: boolean;
+  show_all_users?: boolean;
   page?: number;
   page_size?: number;
 }
